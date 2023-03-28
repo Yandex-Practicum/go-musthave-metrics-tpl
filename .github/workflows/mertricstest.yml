@@ -1,0 +1,372 @@
+name: autotests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  branchtest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check branch name
+        run: |
+          if [[ ! $GITHUB_HEAD_REF =~ ^iter[0-9]+$ ]]; then echo "Branch name must match pattern 'iter<number>'" && exit 1; fi
+
+  metricstest:
+    runs-on: ubuntu-latest
+    container: golang:1.19
+    needs: branchtest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: praktikum
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Download autotests binaries
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: Yandex-Practicum/go-autotests
+          tag: refactor
+          fileName: "*"
+          out-file-path: .tools
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup autotest binary
+        run: |
+          chmod -R +x $GITHUB_WORKSPACE/.tools
+          mv $GITHUB_WORKSPACE/.tools/metricstest /usr/local/bin/metricstest
+          mv $GITHUB_WORKSPACE/.tools/random /usr/local/bin/random
+
+      - name: Setup go deps
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+
+
+      - name: Build server binary
+        run: |
+          cd cmd/server
+          go build -buildvcs=false -o server
+
+
+      - name: "Code increment #1"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter1' ||
+          github.head_ref == 'iter2' ||
+          github.head_ref == 'iter3' ||
+          github.head_ref == 'iter4' ||
+          github.head_ref == 'iter5' ||
+          github.head_ref == 'iter6' ||
+          github.head_ref == 'iter7' ||
+          github.head_ref == 'iter8' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          metricstest -test.v -test.run=^TestIteration1$ \
+              -binary-path=cmd/server/server
+
+
+      - name: Build agent binary
+        run: |
+          cd cmd/agent
+          go build -buildvcs=false  -o agent
+
+
+      - name: "Code increment #2"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter2' ||
+          github.head_ref == 'iter3' ||
+          github.head_ref == 'iter4' ||
+          github.head_ref == 'iter5' ||
+          github.head_ref == 'iter6' ||
+          github.head_ref == 'iter7' ||
+          github.head_ref == 'iter8' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          metricstest -test.v -test.run=^TestIteration2$ \
+              -binary-path=cmd/agent/agent
+
+      - name: "Code increment #3"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter3' ||
+          github.head_ref == 'iter4' ||
+          github.head_ref == 'iter5' ||
+          github.head_ref == 'iter6' ||
+          github.head_ref == 'iter7' ||
+          github.head_ref == 'iter8' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          metricstest -test.v -test.run=^TestIteration3[b]*$ \
+              -source-path=. \
+              -binary-path=cmd/server/server
+
+
+      - name: "Code increment #4"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter4' ||
+          github.head_ref == 'iter5' ||
+          github.head_ref == 'iter6' ||
+          github.head_ref == 'iter7' ||
+          github.head_ref == 'iter8' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration4$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #5"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter5' ||
+          github.head_ref == 'iter6' ||
+          github.head_ref == 'iter7' ||
+          github.head_ref == 'iter8' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration5$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #6"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter6' ||
+          github.head_ref == 'iter7' ||
+          github.head_ref == 'iter8' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration6$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #7"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter7' ||
+          github.head_ref == 'iter8' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration7$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+
+
+      - name: "Code increment #8"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter8' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration8$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #9"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter9' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration9$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -key="${TEMP_FILE}" \
+            -file-storage-path=$TEMP_FILE \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #10"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter10' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration10$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -key="${TEMP_FILE}" \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #11"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter11' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration11$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -key="${TEMP_FILE}" \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #12"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter12' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration12$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -key="${TEMP_FILE}" \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #13"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter13' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration13$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -key="${TEMP_FILE}" \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #14"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter14'
+        run: |
+          SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration14$ \
+            -source-path=. \
+            -server-port=$SERVER_PORT \
+            -key="${TEMP_FILE}" \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
+
+
+      - name: "Code increment #14 (race detection)"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter14'
+        run: |
+          go test -v -race ./...
