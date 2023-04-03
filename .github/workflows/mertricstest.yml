@@ -108,7 +108,7 @@ jobs:
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14'
         run: |
-          metricstest -test.v -test.run=^TestIteration2$ \
+          metricstest -test.v -test.run=^TestIteration2[AB]*$ \
               -binary-path=cmd/agent/agent
 
       - name: "Code increment #3"
@@ -127,7 +127,7 @@ jobs:
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14'
         run: |
-          metricstest -test.v -test.run=^TestIteration3[b]*$ \
+          metricstest -test.v -test.run=^TestIteration3[AB]*$ \
               -source-path=. \
               -binary-path=cmd/server/server
 
@@ -281,7 +281,7 @@ jobs:
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
-          metricstest -test.v -test.run=^TestIteration10$ \
+          metricstest -test.v -test.run=^TestIteration10[AB]$ \
             -source-path=. \
             -server-port=$SERVER_PORT \
             -key="${TEMP_FILE}" \
