@@ -82,7 +82,7 @@ jobs:
           github.head_ref == 'iter14'
         run: |
           metricstest -test.v -test.run=^TestIteration1$ \
-              -binary-path=cmd/server/server
+            -binary-path=cmd/server/server
 
 
       - name: Build agent binary
@@ -109,7 +109,8 @@ jobs:
           github.head_ref == 'iter14'
         run: |
           metricstest -test.v -test.run=^TestIteration2[AB]*$ \
-              -binary-path=cmd/agent/agent
+            -source-path=. \
+            -agent-binary-path=cmd/agent/agent
 
       - name: "Code increment #3"
         if: |
@@ -128,8 +129,9 @@ jobs:
           github.head_ref == 'iter14'
         run: |
           metricstest -test.v -test.run=^TestIteration3[AB]*$ \
-              -source-path=. \
-              -binary-path=cmd/server/server
+            -source-path=. \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server
 
 
       - name: "Code increment #4"
@@ -151,6 +153,7 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration4$ \
+            -file-storage-path=$TEMP_FILE \
             -source-path=. \
             -server-port=$SERVER_PORT \
             -agent-binary-path=cmd/agent/agent \
