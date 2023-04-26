@@ -254,13 +254,11 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration9$ \
-            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
-            -source-path=. \
-            -server-port=$SERVER_PORT \
-            -key="${TEMP_FILE}" \
-            -file-storage-path=$TEMP_FILE \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server
+            -binary-path=cmd/server/server \
+            -file-storage-path=$TEMP_FILE \
+            -server-port=$SERVER_PORT \
+            -source-path=.
 
       - name: "Code increment #10"
         if: |
@@ -275,12 +273,11 @@ jobs:
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration10[AB]$ \
-            -source-path=. \
-            -server-port=$SERVER_PORT \
-            -key="${TEMP_FILE}" \
-            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+            -server-port=$SERVER_PORT \
+            -source-path=. \
 
       - name: "Code increment #11"
         if: |
