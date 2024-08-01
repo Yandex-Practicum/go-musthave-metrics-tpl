@@ -23,3 +23,4 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+metricstest-darwin-arm64
