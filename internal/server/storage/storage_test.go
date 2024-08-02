@@ -27,6 +27,13 @@ func TestStorage_Update(t *testing.T) {
             wantErr:     false,
         },
         {
+            name:        "Add new metric type many numbers after comma",
+            metricType:  "gauge",
+            metricName:  "longdecimal",
+            metricValue: 23.53443223454345,
+            wantErr:     false,
+        },
+        {
             name:        "Update existing metric with new value",
             metricType:  "counter",
             metricName:  "requests",
