@@ -24,3 +24,5 @@ vendor/
 .idea
 .vscode
 metricstest-darwin-arm64
+metricstest
+coverage.html
