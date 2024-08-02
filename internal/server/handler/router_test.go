@@ -104,6 +104,7 @@ func TestRouter_UpdateMetricHandler(t *testing.T) {
             router.UpdateMetricHandler()(w, req)
 
             resp := w.Result()
+            defer resp.Body.Close()
             body, _ := io.ReadAll(resp.Body)
 
             if resp.StatusCode != tt.wantStatusCode {
