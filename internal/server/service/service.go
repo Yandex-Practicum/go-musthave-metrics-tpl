@@ -28,6 +28,7 @@ func New(s Storager) *Service {
 
 // Update обновление метрики
 func (s *Service) Update(metricType, metricName string, metricValue interface{}) error {
+	// TODO: make it smaller in one place
 	if metricType == "" {
 		log.Println("metricType cannot be empty")
 		return models.NewHTTPError(http.StatusBadRequest, "metricType cannot be empty")
