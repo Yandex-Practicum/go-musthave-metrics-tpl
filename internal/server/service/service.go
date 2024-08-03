@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,7 +17,9 @@ type Service struct {
 
 // Storager интерфейс для хранилища
 type Storager interface {
-	Update(metricType, metricName string, metricValue interface{}) error
+	UpdateMetric(metric models.Metric) error
+	GetValue(metric models.Metric) (interface{}, error)
+	MetrixStatistic() (map[string]interface{}, error)
 }
 
 // New создание нового сервиса
@@ -26,32 +29,75 @@ func New(s Storager) *Service {
 	}
 }
 
-// Update обновление метрики
-func (s *Service) Update(metricType, metricName string, metricValue interface{}) error {
-	// TODO: make it smaller in one place
-	if metricType == "" {
-		log.Println("metricType cannot be empty")
-		return models.NewHTTPError(http.StatusBadRequest, "metricType cannot be empty")
+// MetrixStatistic получение статистики метрик
+func (s *Service) MetrixStatistic() (*template.Template, map[string]interface{}, error) {
+	metrics, err := s.Storage.MetrixStatistic()
+	if err != nil {
+		log.Printf("failed to get metrics: %v", err)
+		return nil, nil, models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to get metrics: %v", err))
 	}
 
-	if metricName == "" {
-		log.Println("metricName cannot be empty")
-		return models.NewHTTPError(http.StatusNotFound, "metricName cannot be empty")
+	tmpl, err := template.New("metrics").Parse(`
+	 <!DOCTYPE html>
+		<html>
+		<head>
+			<title>Metrics Statistics</title>
+		</head>
+		<body>
+			<h1>Metrics Statistics</h1>
+			<table border="1">
+				<tr>
+					<th>Metric Name</th>
+					<th>Metric Value</th>
+				</tr>
+				{{range $key, $metric := .}}
+				<tr>
+					<td>{{$key}}</td>
+					<td>{{$metric.Value}}</td>
+				</tr>
+				{{end}}
+			</table>
+		</body>
+		</html>
+	`)
+	if err != nil {
+		log.Printf("failed to parse template: %v", err)
+		return nil, nil, models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to parse template: %v", err))
 	}
 
-	if metricValue == "" {
-		log.Println("metricValue cannot be nil")
-		return models.NewHTTPError(http.StatusBadRequest, "metricValue cannot be nil")
+	return tmpl, metrics, nil
+}
+
+// GetValueServ получение значения метрики
+func (s *Service) GetValueServ(metric models.Metric) (string, error) {
+    // Проверка метрики
+    if err := validateMetric(metric); err != nil {
+        return "", err
+    }
+
+	value, err := s.Storage.GetValue(metric)
+	if err != nil {
+		log.Printf("failed to get value: %v", err)
+		return "", models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to get value: %v", err))
 	}
 
-	if s.Storage == nil {
-		log.Println("storage cannot be nil")
-		return models.NewHTTPError(http.StatusInternalServerError, "storage cannot be nil")
-	}
+	// TODO: make sparate function for this
+	valueStr := fmt.Sprintf("%v", value)
+	
+	return valueStr, nil
+}
 
-	switch metricType {
+
+// UpdateServ обновление метрики
+func (s *Service) UpdateServ(metric models.Metric) error {
+    // Проверка метрики
+    if err := validateMetric(metric); err != nil {
+        return err
+    }
+
+    switch metric.Type {
     case "gauge":
-        strValue, ok := metricValue.(string)
+        strValue, ok := metric.Value.(string)
         if !ok {
             log.Println("metricValue must be a string for gauge type")
             return models.NewHTTPError(http.StatusBadRequest, "metricValue must be a string for gauge type")
@@ -61,29 +107,72 @@ func (s *Service) Update(metricType, metricName string, metricValue interface{})
             log.Printf("invalid gauge value: %v", err)
             return models.NewHTTPError(http.StatusBadRequest, "invalid gauge value")
         }
-        s.Storage.Update(metricType, metricName, value)
+        s.Storage.UpdateMetric(models.Metric{
+            Type:  metric.Type,
+            Name:  metric.Name,
+            Value: value,
+        })
     case "counter":
-        strValue, ok := metricValue.(string)
+        // Получение старого значения счетчика
+        counterVal, _ := s.GetValueServ(metric)
+        // if counterVal == ""{
+		// } else {
+		// 	err != nil {
+        //     log.Printf("failed to get value: %v", err)
+        //     // return models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to get value: %v", err))
+        // } 
+		// 	}
+
+        // Инициализация значения счетчика, если оно не существует
+        var counterInt int 
+		var err error
+        if counterVal == "" {
+            counterInt = 0
+        } else {
+            counterInt, err = strconv.Atoi(counterVal)
+            if err != nil {
+                log.Printf("failed to convert value to int: %v", err)
+                return models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to convert value to int: %v", err))
+            }
+        }
+
+        strValue, ok := metric.Value.(string)
         if !ok {
             log.Println("metricValue must be a string for counter type")
             return models.NewHTTPError(http.StatusBadRequest, "metricValue must be a string for counter type")
         }
-        value, err := strconv.ParseInt(strValue, 10, 64)
+        newValue, err := strconv.ParseInt(strValue, 10, 64)
         if err != nil {
             log.Printf("invalid counter value: %v", err)
             return models.NewHTTPError(http.StatusBadRequest, "invalid counter value")
         }
-        s.Storage.Update(metricType, metricName, value)
+
+        // Добавление старого значения к новому
+        totalValue := newValue + int64(counterInt)
+        s.Storage.UpdateMetric(models.Metric{
+            Type:  metric.Type,
+            Name:  metric.Name,
+            Value: totalValue,
+        })
     default:
-        log.Printf("unknown metric type: %s", metricType)
+        log.Printf("unknown metric type: %s", metric.Type)
         return models.NewHTTPError(http.StatusBadRequest, "unknown metric type")
     }
 
-	if err := s.Storage.Update(metricType, metricName, metricValue); err != nil {
-		log.Printf("failed to update metric: %v", err)
-		return models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to update metric: %v", err))
-	}
-
-	return nil
+    return nil
 }
 
+// validateMetric проверяет метрику на наличие ошибок
+func validateMetric(metric models.Metric) error {
+    if metric.Type == "" || metric.Value == "" {
+        log.Println("metric cannot be empty")
+        return models.NewHTTPError(http.StatusBadRequest, "metricType cannot be empty")
+    }
+
+    if metric.Name == "" {
+        log.Println("metricName cannot be empty")
+        return models.NewHTTPError(http.StatusNotFound, "metricName cannot be empty")
+    }
+
+    return nil
+}
