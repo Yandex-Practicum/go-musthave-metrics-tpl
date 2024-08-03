@@ -51,10 +51,8 @@ func (s *Router) UpdateMetricHandler(c *gin.Context) {
 }
 
 // GetValueHandler обработчик для получения значения метрики
-func (s *Router) GetValueHandler(c *gin.Context) {
-    var metric models.Metric
-    
-    metric = models.Metric{
+func (s *Router) GetValueHandler(c *gin.Context) {    
+    metric := models.Metric{
         Type: c.Param("type"),
         Name: c.Param("name"),
     }
