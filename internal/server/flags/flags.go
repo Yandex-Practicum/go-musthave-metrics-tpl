@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config структура конфигурации
 type Config struct {
 	ServerAddress   string
 	StoreInterval   int
@@ -15,9 +16,8 @@ type Config struct {
 	Restore         bool
 }
 
-// var flags = pflag.NewFlagSet("flags", pflag.ExitOnError)
-
-func init() {
+// GetFlags устанавливает и получает флаги
+func GetFlags() {
 	// Define the flags and bind them to viper
 	pflag.StringP("ServerAddress", "a", "localhost:8080", "HTTP server network address")
 	pflag.IntP("StoreInterval", "i", 300, "Interval in seconds to store the current server readings to disk")
@@ -25,15 +25,15 @@ func init() {
 	pflag.BoolP("Restore", "r", true, "Whether to load previously saved values from the specified file at server startup")
 
 	// Parse the command-line flags
-    pflag.Parse()
+	pflag.Parse()
 
-    // Check for unknown flags
-    for _, arg := range pflag.Args() {
-        if !strings.HasPrefix(arg, "-") {
-            log.Fatalf("Unknown flag: %v", arg)
-        }
-    }
-	
+	// Check for unknown flags
+	for _, arg := range pflag.Args() {
+		if !strings.HasPrefix(arg, "-") {
+			log.Fatalf("Unknown flag: %v", arg)
+		}
+	}
+
 	// Bind the flags to viper
 	bindFlagToViper("ServerAddress")
 	bindFlagToViper("StoreInterval")
@@ -63,7 +63,9 @@ func bindEnvToViper(viperKey, envKey string) {
 	}
 }
 
+// NewConfig создает новый экземпляр конфигурации
 func NewConfig() *Config {
+	GetFlags()
 	return &Config{
 		ServerAddress:   Address(),
 		StoreInterval:   Interval(),
@@ -72,21 +74,26 @@ func NewConfig() *Config {
 	}
 }
 
+// Address возвращает адрес сервера
 func Address() string {
 	return viper.GetString("ServerAddress")
 }
 
+// Interval возвращает интервал сохранения текущих значений сервера на диск
 func Interval() int {
 	return viper.GetInt("StoreInterval")
 }
 
+// FileStoragePath возвращает путь к файлу хранения
 func FileStoragePath() string {
-    path := viper.GetString("FileStoragePath")
-    if path == "=" {
-        return ""
-    }
-    return path
+	path := viper.GetString("FileStoragePath")
+	if path == "=" {
+		return ""
+	}
+	return path
 }
+
+// Restore возвращает флаг восстановления
 func Restore() bool {
 	return viper.GetBool("Restore")
 }

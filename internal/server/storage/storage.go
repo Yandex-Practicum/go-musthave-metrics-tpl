@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/vova4o/yandexadv/internal/models"
@@ -10,19 +9,13 @@ import (
 // Storage структура для хранилища
 type Storage struct {
 	MemStorage map[string]models.Metric
-	mu 	   sync.Mutex
+	mu         sync.Mutex
 }
 
 // gauge - тип метрики
 // a:val,b:val,c,d,e - метрики
 // counter - тип метрики
 // PollCount:val
-
-// Ошибки
-var (
-    ErrMetricTypeNotFound = errors.New("metric type not found")
-    ErrMetricNotFound     = errors.New("metric not found")
-)
 
 // New создание нового хранилища
 func New() *Storage {
@@ -36,7 +29,7 @@ func (s *Storage) MetrixStatistic() (map[string]interface{}, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var metrics =  make(map[string]interface{})
+	var metrics = make(map[string]interface{})
 
 	for metricType, metricValues := range s.MemStorage {
 		metrics[metricType] = metricValues
@@ -58,10 +51,10 @@ func (s *Storage) UpdateMetric(metric models.Metric) error {
 func (s *Storage) GetValue(metric models.Metric) (interface{}, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if value, ok := s.MemStorage[metric.Name]; ok {
 		return value.Value, nil
 	}
 
-	return "", ErrMetricNotFound
+	return "", models.ErrMetricNotFound
 }

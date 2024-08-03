@@ -13,30 +13,30 @@ import (
 
 // change this later to a config stuct
 var (
-    pollCount      int64
-    metricsData    []metrics.Metric
-    metricsMutex   sync.Mutex
+	pollCount    int64
+	metricsData  []metrics.Metric
+	metricsMutex sync.Mutex
 )
 
 func main() {
-    config := flags.NewConfig()
+	config := flags.NewConfig()
 
-    tickerPoll := time.NewTicker(config.PollInterval)
-    tickerReport := time.NewTicker(config.ReportInterval)
+	tickerPoll := time.NewTicker(config.PollInterval)
+	tickerReport := time.NewTicker(config.ReportInterval)
 
-    for {
-        select {
-        case <-tickerPoll.C:
-            pollCount++
-            metricsMutex.Lock()
-            metricsData = collector.CollectMetrics(pollCount)
-            metricsMutex.Unlock()
+	for {
+		select {
+		case <-tickerPoll.C:
+			pollCount++
+			metricsMutex.Lock()
+			metricsData = collector.CollectMetrics(pollCount)
+			metricsMutex.Unlock()
 
-        case <-tickerReport.C:
-            metricsMutex.Lock()
-            sender.SendMetrics(config.ServerAddress, metricsData)
-            metricsMutex.Unlock()
-            fmt.Println("Sent metrics")
-        }
-    }
+		case <-tickerReport.C:
+			metricsMutex.Lock()
+			sender.SendMetrics(config.ServerAddress, metricsData)
+			metricsMutex.Unlock()
+			fmt.Println("Sent metrics")
+		}
+	}
 }

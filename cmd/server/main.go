@@ -13,13 +13,13 @@ func main() {
 	config := flags.NewConfig()
 
 	storage := storage.New()
-	
+
 	service := service.New(storage)
 
 	router := handler.New(service)
 	router.RegisterRoutes()
 
-	log.Println("Starting server on "+ config.ServerAddress)
+	log.Println("Starting server on " + config.ServerAddress)
 	if err := router.StartServer(config.ServerAddress); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

@@ -16,23 +16,22 @@ type Config struct {
 	PollInterval   time.Duration
 }
 
-// var flags = pflag.NewFlagSet("flags", pflag.ExitOnError)
-
-func init() {
+// GetFlags устанавливает и получает флаги
+func GetFlags() {
 	// Define the flags and bind them to viper
 	pflag.StringP("ServerAddress", "a", "localhost:8080", "HTTP server network address")
 	pflag.IntP("ReportInterval", "r", 10, "Interval between fetching reportable metrics in seconds")
 	pflag.IntP("PollInterval", "p", 2, "Interval between polling metrics in seconds")
 
 	// Parse the command-line flags
-    pflag.Parse()
+	pflag.Parse()
 
-    // Check for unknown flags
-    for _, arg := range pflag.Args() {
-        if !strings.HasPrefix(arg, "-") {
-            log.Fatalf("Unknown flag: %v", arg)
-        }
-    }
+	// Check for unknown flags
+	for _, arg := range pflag.Args() {
+		if !strings.HasPrefix(arg, "-") {
+			log.Fatalf("Unknown flag: %v", arg)
+		}
+	}
 
 	// Bind the flags to viper
 	bindFlagToViper("ServerAddress")
@@ -63,6 +62,7 @@ func bindEnvToViper(viperKey, envKey string) {
 
 // NewConfig создает новую конфигурацию
 func NewConfig() *Config {
+	GetFlags()
 	return &Config{
 		ServerAddress:  GetServerAddress(),
 		ReportInterval: GetReportInterval(),

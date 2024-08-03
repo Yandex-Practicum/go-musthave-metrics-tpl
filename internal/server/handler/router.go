@@ -9,39 +9,37 @@ import (
 
 // Router структура для роутера
 type Router struct {
-    mux *gin.Engine
+	mux     *gin.Engine
 	Service Servicer
 }
 
 // Servicer интерфейс для сервиса
 type Servicer interface {
 	UpdateServ(metric models.Metric) error
-    GetValueServ(metric models.Metric) (string, error)
-    MetrixStatistic() (*template.Template,map[string]interface{}, error)
+	GetValueServ(metric models.Metric) (string, error)
+	MetrixStatistic() (*template.Template, map[string]interface{}, error)
 }
 
 // New создание нового роутера
 func New(s Servicer) *Router {
-    return &Router{
-        mux:    gin.Default(),
+	return &Router{
+		mux:     gin.Default(),
 		Service: s,
-    }
+	}
 }
 
 // RegisterRoutes регистрация маршрутов
 func (s *Router) RegisterRoutes() {
-    s.mux.POST("/update/:type/:name/:value", s.UpdateMetricHandler)
-    s.mux.GET("/value/:type/:name", s.GetValueHandler)
-    s.mux.GET("/", s.StatisticPage)
+	s.mux.POST("/update/:type/:name/:value", s.UpdateMetricHandler)
+	s.mux.GET("/value/:type/:name", s.GetValueHandler)
+	s.mux.GET("/", s.StatisticPage)
 }
 
 // StartServer запуск сервера
 func (s *Router) StartServer(addr string) error {
-    // Запуск сервера с использованием Gin
-    if err := s.mux.Run(addr); err != nil {
-        return err
-    }
-    return nil
+	// Запуск сервера с использованием Gin
+	if err := s.mux.Run(addr); err != nil {
+		return err
+	}
+	return nil
 }
-
-

@@ -1,8 +1,10 @@
 package models
 
+import "errors"
+
 type Metric struct {
-	Type  string `json:"type"`
-	Name  string `json:"name"`
+	Type  string      `json:"type"`
+	Name  string      `json:"name"`
 	Value interface{} `json:"value"`
 }
 
@@ -11,6 +13,12 @@ type HTTPError struct {
 	Status  int
 	Message string
 }
+
+// MetricsError готовые ошибки
+var (
+	ErrMetricTypeNotFound = errors.New("metric type not found")
+	ErrMetricNotFound =    errors.New("metric not found")
+)
 
 // Error реализация интерфейса ошибки
 func (e *HTTPError) Error() string {
