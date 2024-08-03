@@ -1,27 +1,28 @@
 package main
 
 import (
-    "fmt"
-    "sync"
-    "time"
+	"fmt"
+	"sync"
+	"time"
 
 	"github.com/vova4o/yandexadv/internal/agent/collector"
+	"github.com/vova4o/yandexadv/internal/agent/flags"
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
 	"github.com/vova4o/yandexadv/internal/agent/sender"
 )
 
 // change this later to a config stuct
 var (
-    pollInterval   = 2 * time.Second
-    reportInterval = 10 * time.Second
     pollCount      int64
     metricsData    []metrics.Metric
     metricsMutex   sync.Mutex
 )
 
 func main() {
-    tickerPoll := time.NewTicker(pollInterval)
-    tickerReport := time.NewTicker(reportInterval)
+    config := flags.NewConfig()
+
+    tickerPoll := time.NewTicker(config.PollInterval)
+    tickerReport := time.NewTicker(config.ReportInterval)
 
     for {
         select {
@@ -33,7 +34,7 @@ func main() {
 
         case <-tickerReport.C:
             metricsMutex.Lock()
-            sender.SendMetrics(metricsData)
+            sender.SendMetrics(config.ServerAddress, metricsData)
             metricsMutex.Unlock()
             fmt.Println("Sent metrics")
         }

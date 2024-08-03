@@ -8,11 +8,11 @@ import (
 )
 
 // SendMetrics отправляет метрики на сервер
-func SendMetrics(metricsData []metrics.Metric) {
+func SendMetrics(address string, metricsData []metrics.Metric) {
 	client := resty.New()
 
 	for _, metric := range metricsData {
-		url := fmt.Sprintf("http://localhost:8080/update/%s/%s/%v", metric.Type, metric.Name, metric.Value)
+		url := fmt.Sprintf("http://%s/update/%s/%s/%v",address, metric.Type, metric.Name, metric.Value)
 		resp, err := client.R().
 			SetHeader("Content-Type", "text/plain").
 			Post(url)
