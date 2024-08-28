@@ -1,5 +1,10 @@
 all: iter1 iter2 iter3
 
+vet:
+	go vet ./...
+
+.PHONY: vet
+
 test:
 	@echo "running tests"
 	go test -coverprofile=coverage.out ./... && \

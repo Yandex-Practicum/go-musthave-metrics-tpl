@@ -1,6 +1,6 @@
 module github.com/vova4o/yandexadv
 
-go 1.22.4
+go 1.22
 
 require (
 	github.com/gin-gonic/gin v1.10.0
