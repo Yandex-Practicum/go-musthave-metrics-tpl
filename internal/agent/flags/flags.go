@@ -23,7 +23,7 @@ func GetFlags() {
 	pflag.StringP("ServerAddress", "a", "localhost:8080", "HTTP server network address")
 	pflag.IntP("ReportInterval", "r", 10, "Interval between fetching reportable metrics in seconds")
 	pflag.IntP("PollInterval", "p", 2, "Interval between polling metrics in seconds")
-	pflag.StringP("AgenLogFileName", "l", "agentlog.log", "Agent log file name")
+	pflag.StringP("AgentLogName", "l", "agentlog.log", "Agent log file name")
 
 	// Parse the command-line flags
 	pflag.Parse()
@@ -39,14 +39,14 @@ func GetFlags() {
 	bindFlagToViper("ServerAddress")
 	bindFlagToViper("ReportInterval")
 	bindFlagToViper("PollInterval")
-	bindFlagToViper("AgentLogFileName")
+	bindFlagToViper("AgentLogName")
 
 	// Set the environment variable names
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	bindEnvToViper("ServerAddress", "ADDRESS")
 	bindEnvToViper("ReportInterval", "REPORT_INTERVAL")
 	bindEnvToViper("PollInterval", "POLL_INTERVAL")
-	bindEnvToViper("AgentLogFileName", "AGENT_LOG_FILE_NAME")
+	bindEnvToViper("AgentLogName", "AGENT_LOG_NAME")
 
 	// Read the environment variables
 	viper.AutomaticEnv()
@@ -77,7 +77,7 @@ func NewConfig() *Config {
 
 // GetAgentLogFileName возвращает имя файла лога агента
 func GetAgentLogFileName() string {
-	return viper.GetString("AgentLogFileName")
+	return viper.GetString("AgentLogName")
 }
 
 

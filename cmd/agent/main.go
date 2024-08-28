@@ -29,6 +29,7 @@ func main() {
 	}
 
 	logger.Info("Starting agent")
+	logger.Info("Server address: " + config.ServerAddress)
 
 	tickerPoll := time.NewTicker(config.PollInterval)
 	tickerReport := time.NewTicker(config.ReportInterval)

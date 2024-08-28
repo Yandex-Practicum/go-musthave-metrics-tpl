@@ -27,3 +27,4 @@ metricstest-darwin-arm64
 metricstest
 coverage.html
 serverlog.log
+agentlog.log
