@@ -9,8 +9,14 @@ import (
 
 // Router структура для роутера
 type Router struct {
+	Middl Middlewarer
 	mux     *gin.Engine
 	Service Servicer
+}
+
+// Middlewarer интерфейс для middleware
+type Middlewarer interface {
+	GinZap() gin.HandlerFunc
 }
 
 // Servicer интерфейс для сервиса
@@ -21,8 +27,9 @@ type Servicer interface {
 }
 
 // New создание нового роутера
-func New(s Servicer) *Router {
+func New(s Servicer, middleware Middlewarer) *Router {
 	return &Router{
+		Middl: middleware,
 		mux:     gin.Default(),
 		Service: s,
 	}
@@ -30,6 +37,9 @@ func New(s Servicer) *Router {
 
 // RegisterRoutes регистрация маршрутов
 func (s *Router) RegisterRoutes() {
+
+	s.mux.Use(s.Middl.GinZap())
+
 	s.mux.POST("/update/:type/:name/:value", s.UpdateMetricHandler)
 	s.mux.GET("/value/:type/:name", s.GetValueHandler)
 	s.mux.GET("/", s.StatisticPage)

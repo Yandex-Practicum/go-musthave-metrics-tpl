@@ -2,6 +2,7 @@ package sender
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
@@ -18,12 +19,12 @@ func SendMetrics(address string, metricsData []metrics.Metric) {
 			Post(url)
 
 		if err != nil {
-			fmt.Printf("Failed to send metric %s: %v\n", metric.Name, err)
+			log.Printf("Failed to send metric %s: %v\n", metric.Name, err)
 			continue
 		}
 
 		if resp.StatusCode() != 200 {
-			fmt.Printf("Failed to send metric %s: status code %d\n", metric.Name, resp.StatusCode())
+			log.Printf("Failed to send metric %s: status code %d\n", metric.Name, resp.StatusCode())
 		}
 	}
 }

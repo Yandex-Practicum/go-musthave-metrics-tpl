@@ -70,4 +70,14 @@ iter5:
 		-server-port=$${SERVER_PORT} \
 		-source-path=.
 
+iter6:
+	@echo "iter6 starting tests for sixth iteration"
+	@SERVER_PORT=8080 \
+	ADDRESS="localhost:8080" \
+	TEMP_FILE="/tmp/tempfile" \
+	./metricstest -test.v -test.run=^TestIteration6$ \
+		-agent-binary-path=cmd/agent/agent \
+		-binary-path=cmd/server/server \
+		-server-port=$${SERVER_PORT} \
+		-source-path=.
 

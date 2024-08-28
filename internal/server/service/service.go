@@ -121,7 +121,6 @@ func (s *Service) UpdateServ(metric models.Metric) error {
 	case "counter":
 		// Получение старого значения счетчика
 		counterVal, err := s.GetValueServ(metric)
-        fmt.Println("Смотрим что нам возвращается2:", counterVal, "Ошибка:", err)
 		if err != nil {
 			if errors.Is(err, models.ErrMetricNotFound) {
 				counterVal = "0"

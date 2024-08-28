@@ -8,14 +8,16 @@ import (
 
 // Storage структура для хранилища
 type Storage struct {
+	// Logger     Loggerer
 	MemStorage map[string]models.Metric
 	mu         sync.Mutex
 }
 
-// gauge - тип метрики
-// a:val,b:val,c,d,e - метрики
-// counter - тип метрики
-// PollCount:val
+// // Loggerer интерфейс для логгера
+// type Loggerer interface {
+// 	Info(string, ...zap.Field)
+// 	Error(string, ...zap.Field)
+// }
 
 // New создание нового хранилища
 func New() *Storage {

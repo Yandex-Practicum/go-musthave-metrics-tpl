@@ -9,6 +9,7 @@ import (
 	"github.com/vova4o/yandexadv/internal/agent/flags"
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
 	"github.com/vova4o/yandexadv/internal/agent/sender"
+	"github.com/vova4o/yandexadv/package/logger"
 )
 
 // change this later to a config stuct
@@ -20,6 +21,14 @@ var (
 
 func main() {
 	config := flags.NewConfig()
+
+	logger, err := logger.NewLogger("info", config.AgenLogFileName)
+	if err != nil {
+		fmt.Println("Error creating logger")
+		return
+	}
+
+	logger.Info("Starting agent")
 
 	tickerPoll := time.NewTicker(config.PollInterval)
 	tickerReport := time.NewTicker(config.ReportInterval)
@@ -36,7 +45,6 @@ func main() {
 			metricsMutex.Lock()
 			sender.SendMetrics(config.ServerAddress, metricsData)
 			metricsMutex.Unlock()
-			fmt.Println("Sent metrics")
 		}
 	}
 }

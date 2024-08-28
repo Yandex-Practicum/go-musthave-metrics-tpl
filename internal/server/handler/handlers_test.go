@@ -67,7 +67,7 @@ func TestRouter_UpdateMetricHandler(t *testing.T) {
 			}
 
 			r := gin.Default()
-			router := New(mockService)
+			router := New(mockService, nil)
 			r.Any("/update/*path", router.UpdateMetricHandler)
 
 			req := httptest.NewRequest(tt.method, tt.url, nil)
@@ -140,7 +140,7 @@ func TestGetValueHandler(t *testing.T) {
 
 			// Создаем маршрутизатор
 			r := gin.Default()
-			router := New(mockService)
+			router := New(mockService, nil)
 			r.GET("/value/:type/:name", router.GetValueHandler)
 
 			// Создаем HTTP-запрос

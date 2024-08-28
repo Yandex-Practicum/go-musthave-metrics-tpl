@@ -26,3 +26,4 @@ vendor/
 metricstest-darwin-arm64
 metricstest
 coverage.html
+serverlog.log
