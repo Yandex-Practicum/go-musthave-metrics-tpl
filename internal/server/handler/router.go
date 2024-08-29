@@ -45,7 +45,7 @@ func (s *Router) RegisterRoutes() {
 	s.mux.POST("/update/:type/:name/:value", s.UpdateMetricHandler)
 	s.mux.GET("/value/:type/:name", s.GetValueHandler)
 	s.mux.GET("/", s.StatisticPage)
-	s.mux.POST("/update", s.UpdateMetricHandlerJSON)
+	s.mux.POST("/update/", s.UpdateMetricHandlerJSON)
 	s.mux.POST("/value/", s.GetValueHandlerJSON)
 }
 
