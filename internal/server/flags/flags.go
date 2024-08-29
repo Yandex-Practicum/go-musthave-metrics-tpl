@@ -14,7 +14,7 @@ type Config struct {
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool
-	ServerLogFile string
+	ServerLogFile   string
 }
 
 // GetFlags устанавливает и получает флаги
@@ -75,7 +75,7 @@ func NewConfig() *Config {
 		StoreInterval:   Interval(),
 		FileStoragePath: FileStoragePath(),
 		Restore:         Restore(),
-		ServerLogFile: ServerLogFile(),
+		ServerLogFile:   ServerLogFile(),
 	}
 }
 

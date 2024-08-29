@@ -11,9 +11,9 @@ import (
 
 // Config структура конфигурации
 type Config struct {
-	ServerAddress  string
-	ReportInterval time.Duration
-	PollInterval   time.Duration
+	ServerAddress   string
+	ReportInterval  time.Duration
+	PollInterval    time.Duration
 	AgenLogFileName string
 }
 
@@ -68,9 +68,9 @@ func bindEnvToViper(viperKey, envKey string) {
 func NewConfig() *Config {
 	GetFlags()
 	return &Config{
-		ServerAddress:  GetServerAddress(),
-		ReportInterval: GetReportInterval(),
-		PollInterval:   GetPollInterval(),
+		ServerAddress:   GetServerAddress(),
+		ReportInterval:  GetReportInterval(),
+		PollInterval:    GetPollInterval(),
 		AgenLogFileName: GetAgentLogFileName(),
 	}
 }
@@ -79,7 +79,6 @@ func NewConfig() *Config {
 func GetAgentLogFileName() string {
 	return viper.GetString("AgentLogName")
 }
-
 
 // GetServerAddress возвращает адрес сервера
 func GetServerAddress() string {

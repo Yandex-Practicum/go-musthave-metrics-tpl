@@ -80,9 +80,34 @@ iter6:
 	@SERVER_PORT=8080 \
 	ADDRESS="localhost:8080" \
 	TEMP_FILE="/tmp/tempfile" \
-	./metricstest -test.v -test.run=^TestIteration6$ \
+	cd ./cmd/server/ && \
+	go build -o server && \
+	cd - && \
+	cd ./cmd/agent/ && \
+	go build -o agent && \
+	cd - && \
+	chmod +x ./metricstest && \
+	./metricstest -test.v -test.run=^TestIteration6$$ \
 		-agent-binary-path=cmd/agent/agent \
 		-binary-path=cmd/server/server \
+		-server-port=$${SERVER_PORT} \
+		-source-path=.
+
+iter7:
+	@echo "iter7 starting tests for seventh iteration"
+	@SERVER_PORT=8080 \
+	ADDRESS="localhost:8080" \
+	TEMP_FILE="/tmp/tempfile" \
+	cd ./cmd/server/ && \
+	go build -o server && \
+	cd - && \
+	cd ./cmd/agent/ && \
+	go build -o agent && \
+	cd - && \
+	chmod +x ./metricstest && \
+	./metricstest -test.v -test.run=^TestIteration7$$ \
+		-binary-path=cmd/server/server \
+		-agent-binary-path=cmd/agent/agent \
 		-server-port=$${SERVER_PORT} \
 		-source-path=.
 

@@ -1,211 +1,224 @@
 package service
 
 import (
-	"errors"
-	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/vova4o/yandexadv/internal/models"
 )
 
-// mockStorager - мок для интерфейса Storager
-type mockStorager struct {
-	UpdateMetricFunc    func(metric models.Metric) error
-	GetValueFunc        func(metric models.Metric) (interface{}, error)
-	MetrixStatisticFunc func() (map[string]interface{}, error)
+// MockStorager - мок для хранилища
+type MockStorager struct {
+    mock.Mock
 }
 
-func (m *mockStorager) UpdateMetric(metric models.Metric) error {
-	if m.UpdateMetricFunc != nil {
-		return m.UpdateMetricFunc(metric)
-	}
-	return nil
+func (m *MockStorager) UpdateMetric(metric models.Metrics) error {
+    args := m.Called(metric)
+    return args.Error(0)
 }
 
-func (m *mockStorager) GetValue(metric models.Metric) (interface{}, error) {
-	if m.GetValueFunc != nil {
-		return m.GetValueFunc(metric)
-	}
-	return nil, nil
+func (m *MockStorager) GetValue(metric models.Metrics) (*models.Metrics, error) {
+    args := m.Called(metric)
+    return args.Get(0).(*models.Metrics), args.Error(1)
 }
 
-func (m *mockStorager) MetrixStatistic() (map[string]interface{}, error) {
-	if m.MetrixStatisticFunc != nil {
-		return m.MetrixStatisticFunc()
-	}
-	return nil, nil
+func (m *MockStorager) MetrixStatistic() (map[string]models.Metrics, error) {
+    args := m.Called()
+    return args.Get(0).(map[string]models.Metrics), args.Error(1)
 }
 
-func TestService_GetValue(t *testing.T) {
-	mockStorage := &mockStorager{
-		GetValueFunc: func(metric models.Metric) (interface{}, error) {
-			if metric.Name == "test" {
-				return "value", nil
-			}
-			return nil, errors.New("not found")
-		},
-	}
+func TestUpdateServ(t *testing.T) {
+    mockStorage := new(MockStorager)
+    service := New(mockStorage)
 
-	s := New(mockStorage)
+    t.Run("Update gauge metric", func(t *testing.T) {
+        metric := models.Metric{
+            Type:  "gauge",
+            Name:  "test_metric_gauge",
+            Value: "123.45",
+        }
 
-	value, err := s.GetValueServ(models.Metric{Type: "gauge", Name: "test"})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if value != "value" {
-		t.Errorf("expected value 'value', got %v", value)
-	}
+        valueFloat := 123.45
+        mockStorage.On("UpdateMetric", models.Metrics{
+            MType: metric.Type,
+            ID:    metric.Name,
+            Value: &valueFloat,
+        }).Return(nil)
+
+        err := service.UpdateServ(metric)
+        assert.NoError(t, err)
+        mockStorage.AssertExpectations(t)
+    })
+
+    t.Run("Update counter metric", func(t *testing.T) {
+        metric := models.Metric{
+            Type:  "counter",
+            Name:  "test_metric_counter",
+            Value: "678",
+        }
+
+        valueInt := int64(678)
+        existingValueInt := int64(678)
+        updatedValueInt := existingValueInt + valueInt
+
+        mockStorage.On("GetValue", models.Metrics{
+            MType: metric.Type,
+            ID:    metric.Name,
+        }).Return(&models.Metrics{Delta: &existingValueInt}, nil)
+
+        mockStorage.On("UpdateMetric", models.Metrics{
+            MType: metric.Type,
+            ID:    metric.Name,
+            Delta: &updatedValueInt,
+        }).Return(nil)
+
+        err := service.UpdateServ(metric)
+        assert.NoError(t, err)
+        mockStorage.AssertExpectations(t)
+    })
 }
 
-func TestService_UpdateServ(t *testing.T) {
-	tests := []struct {
-		name          string
-		metric        models.Metric
-		mockStorage   *mockStorager
-		expectedError error
-	}{
-		{
-			name: "successful gauge update",
-			metric: models.Metric{
-				Type:  "gauge",
-				Name:  "testGauge",
-				Value: "123.45",
-			},
-			mockStorage: &mockStorager{
-				UpdateMetricFunc: func(metric models.Metric) error {
-					if metric.Type != "gauge" || metric.Name != "testGauge" || metric.Value != 123.45 {
-						return errors.New("unexpected metric values")
-					}
-					return nil
-				},
-			},
-			expectedError: nil,
-		},
-		// {
-		//     name: "successful counter update",
-		//     metric: models.Metric{
-		//         Type:  "counter",
-		//         Name:  "testCounter",
-		//         Value: "10",
-		//     },
-		//     mockStorage: &mockStorager{
-		//         GetValueFunc: func(metric models.Metric) (string, error) {
-		//             return "5", nil
-		//         },
-		//         UpdateMetricFunc: func(metric models.Metric) error {
-		//             if metric.Type != "counter" || metric.Name != "testCounter" || metric.Value != int64(15) {
-		//                 return errors.New("unexpected metric values")
-		//             }
-		//             return nil
-		//         },
-		//     },
-		//     expectedError: nil,
-		// },
-		{
-			name: "validation error - empty type",
-			metric: models.Metric{
-				Type:  "",
-				Name:  "testMetric",
-				Value: "123",
-			},
-			mockStorage:   &mockStorager{},
-			expectedError: models.NewHTTPError(http.StatusBadRequest, "metricType cannot be empty"),
-		},
-		{
-			name: "validation error - empty name",
-			metric: models.Metric{
-				Type:  "gauge",
-				Name:  "",
-				Value: "123",
-			},
-			mockStorage:   &mockStorager{},
-			expectedError: models.NewHTTPError(http.StatusNotFound, "metricName cannot be empty"),
-		},
-		// {
-		//     name: "storage is nil",
-		//     metric: models.Metric{
-		//         Type:  "gauge",
-		//         Name:  "testGauge",
-		//         Value: "123.45",
-		//     },
-		//     mockStorage:   nil,
-		//     expectedError: models.NewHTTPError(http.StatusInternalServerError, "storage cannot be nil"),
-		// },
-	}
+func TestGetValueServ(t *testing.T) {
+    mockStorage := new(MockStorager)
+    service := New(mockStorage)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Service{Storage: tt.mockStorage}
-			err := s.UpdateServ(tt.metric)
-			if err != nil && tt.expectedError == nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-			if err == nil && tt.expectedError != nil {
-				t.Errorf("expected error: %v, got nil", tt.expectedError)
-			}
-			if err != nil && tt.expectedError != nil && err.Error() != tt.expectedError.Error() {
-				t.Errorf("expected error: %v, got: %v", tt.expectedError, err)
-			}
-		})
-	}
+    t.Run("Get gauge metric value", func(t *testing.T) {
+        metric := models.Metrics{
+            MType: "gauge",
+            ID:    "test_metric_gauge",
+        }
+
+        valueFloat := 123.45
+        mockStorage.On("GetValue", metric).Return(&models.Metrics{Value: &valueFloat}, nil)
+
+        value, err := service.GetValueServ(metric)
+        assert.NoError(t, err)
+        assert.Equal(t, "123.45", value)
+        mockStorage.AssertExpectations(t)
+    })
+
+    t.Run("Get counter metric value", func(t *testing.T) {
+        metric := models.Metrics{
+            MType: "counter",
+            ID:    "test_metric_counter",
+        }
+
+        valueInt := int64(678)
+        mockStorage.On("GetValue", metric).Return(&models.Metrics{Delta: &valueInt}, nil)
+
+        value, err := service.GetValueServ(metric)
+        assert.NoError(t, err)
+        assert.Equal(t, "678", value)
+        mockStorage.AssertExpectations(t)
+    })
 }
 
-func TestValidateMetric(t *testing.T) {
-	tests := []struct {
-		name          string
-		metric        models.Metric
-		expectedError error
-	}{
-		{
-			name: "empty type",
-			metric: models.Metric{
-				Type:  "",
-				Name:  "testMetric",
-				Value: "123",
-			},
-			expectedError: models.NewHTTPError(http.StatusBadRequest, "metricType cannot be empty"),
-		},
-		{
-			name: "empty value",
-			metric: models.Metric{
-				Type:  "gauge",
-				Name:  "testMetric",
-				Value: "",
-			},
-			expectedError: models.NewHTTPError(http.StatusBadRequest, "metricType cannot be empty"),
-		},
-		{
-			name: "empty name",
-			metric: models.Metric{
-				Type:  "gauge",
-				Name:  "",
-				Value: "123",
-			},
-			expectedError: models.NewHTTPError(http.StatusNotFound, "metricName cannot be empty"),
-		},
-		{
-			name: "valid metric",
-			metric: models.Metric{
-				Type:  "gauge",
-				Name:  "testMetric",
-				Value: "123",
-			},
-			expectedError: nil,
-		},
-	}
+func TestUpdateServJSON(t *testing.T) {
+    mockStorage := new(MockStorager)
+    service := New(mockStorage)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateMetric(tt.metric)
-			if err != nil && tt.expectedError == nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-			if err == nil && tt.expectedError != nil {
-				t.Errorf("expected error: %v, got nil", tt.expectedError)
-			}
-			if err != nil && tt.expectedError != nil && err.Error() != tt.expectedError.Error() {
-				t.Errorf("expected error: %v, got: %v", tt.expectedError, err)
-			}
-		})
-	}
+    t.Run("Update gauge metric JSON", func(t *testing.T) {
+        metric := models.Metrics{
+            MType: "gauge",
+            ID:    "test_metric_gauge",
+            Value: new(float64),
+        }
+        *metric.Value = 123.45
+
+        mockStorage.On("UpdateMetric", metric).Return(nil)
+
+        err := service.UpdateServJSON(metric)
+        assert.NoError(t, err)
+        mockStorage.AssertExpectations(t)
+    })
+
+    t.Run("Update counter metric JSON", func(t *testing.T) {
+        metric := models.Metrics{
+            MType: "counter",
+            ID:    "test_metric_counter",
+            Delta: new(int64),
+        }
+        *metric.Delta = 678
+
+        mockStorage.On("GetValue", models.Metrics{
+            MType: metric.MType,
+            ID:    metric.ID,
+        }).Return(&models.Metrics{Delta: new(int64)}, nil)
+
+        mockStorage.On("UpdateMetric", models.Metrics{
+            MType: metric.MType,
+            ID:    metric.ID,
+            Delta: metric.Delta,
+        }).Return(nil)
+
+        err := service.UpdateServJSON(metric)
+        assert.NoError(t, err)
+        mockStorage.AssertExpectations(t)
+    })
+}
+
+func TestGetValueServJSON(t *testing.T) {
+    mockStorage := new(MockStorager)
+    service := New(mockStorage)
+
+    t.Run("Get gauge metric value JSON", func(t *testing.T) {
+        metric := models.Metrics{
+            MType: "gauge",
+            ID:    "test_metric_gauge",
+        }
+
+        valueFloat := 123.45
+        mockStorage.On("GetValue", metric).Return(&models.Metrics{Value: &valueFloat}, nil)
+
+        result, err := service.GetValueServJSON(metric)
+        assert.NoError(t, err)
+        assert.Equal(t, &valueFloat, result.Value)
+        mockStorage.AssertExpectations(t)
+    })
+
+    t.Run("Get counter metric value JSON", func(t *testing.T) {
+        metric := models.Metrics{
+            MType: "counter",
+            ID:    "test_metric_counter",
+        }
+
+        valueInt := int64(678)
+        mockStorage.On("GetValue", metric).Return(&models.Metrics{Delta: &valueInt}, nil)
+
+        result, err := service.GetValueServJSON(metric)
+        assert.NoError(t, err)
+        assert.Equal(t, &valueInt, result.Delta)
+        mockStorage.AssertExpectations(t)
+    })
+}
+
+func TestMetrixStatistic(t *testing.T) {
+    mockStorage := new(MockStorager)
+    service := New(mockStorage)
+
+    t.Run("Get metrics statistics", func(t *testing.T) {
+        metrics := map[string]models.Metrics{
+            "test_metric_gauge": {
+                MType: "gauge",
+                ID:    "test_metric_gauge",
+                Value: new(float64),
+            },
+            "test_metric_counter": {
+                MType: "counter",
+                ID:    "test_metric_counter",
+                Delta: new(int64),
+            },
+        }
+        *metrics["test_metric_gauge"].Value = 123.45
+        *metrics["test_metric_counter"].Delta = 678
+
+        mockStorage.On("MetrixStatistic").Return(metrics, nil)
+
+        tmpl, result, err := service.MetrixStatistic()
+        assert.NoError(t, err)
+        assert.NotNil(t, tmpl)
+        assert.Equal(t, metrics, result)
+        mockStorage.AssertExpectations(t)
+    })
 }

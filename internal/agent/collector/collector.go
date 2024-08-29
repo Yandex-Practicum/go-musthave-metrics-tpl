@@ -7,40 +7,45 @@ import (
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
 )
 
+// toFloat64Pointer преобразует значение float64 в указатель на float64
+func toFloat64Pointer(value float64) *float64 {
+	return &value
+}
+
 // CollectMetrics собирает метрики и возвращает их
-func CollectMetrics(pollCount int64) []metrics.Metric {
+func CollectMetrics(pollCount int64) []metrics.Metrics {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	return []metrics.Metric{
-		{Name: "Alloc", Type: "gauge", Value: float64(m.Alloc)},
-		{Name: "BuckHashSys", Type: "gauge", Value: float64(m.BuckHashSys)},
-		{Name: "Frees", Type: "gauge", Value: float64(m.Frees)},
-		{Name: "GCCPUFraction", Type: "gauge", Value: m.GCCPUFraction},
-		{Name: "GCSys", Type: "gauge", Value: float64(m.GCSys)},
-		{Name: "HeapAlloc", Type: "gauge", Value: float64(m.HeapAlloc)},
-		{Name: "HeapIdle", Type: "gauge", Value: float64(m.HeapIdle)},
-		{Name: "HeapInuse", Type: "gauge", Value: float64(m.HeapInuse)},
-		{Name: "HeapObjects", Type: "gauge", Value: float64(m.HeapObjects)},
-		{Name: "HeapReleased", Type: "gauge", Value: float64(m.HeapReleased)},
-		{Name: "HeapSys", Type: "gauge", Value: float64(m.HeapSys)},
-		{Name: "LastGC", Type: "gauge", Value: float64(m.LastGC)},
-		{Name: "Lookups", Type: "gauge", Value: float64(m.Lookups)},
-		{Name: "MCacheInuse", Type: "gauge", Value: float64(m.MCacheInuse)},
-		{Name: "MCacheSys", Type: "gauge", Value: float64(m.MCacheSys)},
-		{Name: "MSpanInuse", Type: "gauge", Value: float64(m.MSpanInuse)},
-		{Name: "MSpanSys", Type: "gauge", Value: float64(m.MSpanSys)},
-		{Name: "Mallocs", Type: "gauge", Value: float64(m.Mallocs)},
-		{Name: "NextGC", Type: "gauge", Value: float64(m.NextGC)},
-		{Name: "NumForcedGC", Type: "gauge", Value: float64(m.NumForcedGC)},
-		{Name: "NumGC", Type: "gauge", Value: float64(m.NumGC)},
-		{Name: "OtherSys", Type: "gauge", Value: float64(m.OtherSys)},
-		{Name: "PauseTotalNs", Type: "gauge", Value: float64(m.PauseTotalNs)},
-		{Name: "StackInuse", Type: "gauge", Value: float64(m.StackInuse)},
-		{Name: "StackSys", Type: "gauge", Value: float64(m.StackSys)},
-		{Name: "Sys", Type: "gauge", Value: float64(m.Sys)},
-		{Name: "TotalAlloc", Type: "gauge", Value: float64(m.TotalAlloc)},
-		{Name: "PollCount", Type: "counter", Value: int64(pollCount)},
-		{Name: "RandomValue", Type: "gauge", Value: rand.Float64()},
+	return []metrics.Metrics{
+		{ID: "Alloc", MType: "gauge", Value: toFloat64Pointer(float64(m.Alloc))},
+		{ID: "BuckHashSys", MType: "gauge", Value: toFloat64Pointer(float64(m.BuckHashSys))},
+		{ID: "Frees", MType: "gauge", Value: toFloat64Pointer(float64(m.Frees))},
+		{ID: "GCCPUFraction", MType: "gauge", Value: toFloat64Pointer(m.GCCPUFraction)},
+		{ID: "GCSys", MType: "gauge", Value: toFloat64Pointer(float64(m.GCSys))},
+		{ID: "HeapAlloc", MType: "gauge", Value: toFloat64Pointer(float64(m.HeapAlloc))},
+		{ID: "HeapIdle", MType: "gauge", Value: toFloat64Pointer(float64(m.HeapIdle))},
+		{ID: "HeapInuse", MType: "gauge", Value: toFloat64Pointer(float64(m.HeapInuse))},
+		{ID: "HeapObjects", MType: "gauge", Value: toFloat64Pointer(float64(m.HeapObjects))},
+		{ID: "HeapReleased", MType: "gauge", Value: toFloat64Pointer(float64(m.HeapReleased))},
+		{ID: "HeapSys", MType: "gauge", Value: toFloat64Pointer(float64(m.HeapSys))},
+		{ID: "LastGC", MType: "gauge", Value: toFloat64Pointer(float64(m.LastGC))},
+		{ID: "Lookups", MType: "gauge", Value: toFloat64Pointer(float64(m.Lookups))},
+		{ID: "MCacheInuse", MType: "gauge", Value: toFloat64Pointer(float64(m.MCacheInuse))},
+		{ID: "MCacheSys", MType: "gauge", Value: toFloat64Pointer(float64(m.MCacheSys))},
+		{ID: "MSpanInuse", MType: "gauge", Value: toFloat64Pointer(float64(m.MSpanInuse))},
+		{ID: "MSpanSys", MType: "gauge", Value: toFloat64Pointer(float64(m.MSpanSys))},
+		{ID: "Mallocs", MType: "gauge", Value: toFloat64Pointer(float64(m.Mallocs))},
+		{ID: "NextGC", MType: "gauge", Value: toFloat64Pointer(float64(m.NextGC))},
+		{ID: "NumForcedGC", MType: "gauge", Value: toFloat64Pointer(float64(m.NumForcedGC))},
+		{ID: "NumGC", MType: "gauge", Value: toFloat64Pointer(float64(m.NumGC))},
+		{ID: "OtherSys", MType: "gauge", Value: toFloat64Pointer(float64(m.OtherSys))},
+		{ID: "PauseTotalNs", MType: "gauge", Value: toFloat64Pointer(float64(m.PauseTotalNs))},
+		{ID: "StackInuse", MType: "gauge", Value: toFloat64Pointer(float64(m.StackInuse))},
+		{ID: "StackSys", MType: "gauge", Value: toFloat64Pointer(float64(m.StackSys))},
+		{ID: "Sys", MType: "gauge", Value: toFloat64Pointer(float64(m.Sys))},
+		{ID: "TotalAlloc", MType: "gauge", Value: toFloat64Pointer(float64(m.TotalAlloc))},
+		{ID: "PollCount", MType: "counter", Delta: &pollCount},
+		{ID: "RandomValue", MType: "gauge", Value: toFloat64Pointer(rand.Float64())},
 	}
 }

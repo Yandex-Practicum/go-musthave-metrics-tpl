@@ -15,7 +15,7 @@ import (
 // change this later to a config stuct
 var (
 	pollCount    int64
-	metricsData  []metrics.Metric
+	metricsData  []metrics.Metrics
 	metricsMutex sync.Mutex
 )
 
@@ -45,6 +45,7 @@ func main() {
 		case <-tickerReport.C:
 			metricsMutex.Lock()
 			sender.SendMetrics(config.ServerAddress, metricsData)
+			sender.SendMetricsJSON(config.ServerAddress, metricsData)
 			metricsMutex.Unlock()
 		}
 	}

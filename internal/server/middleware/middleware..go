@@ -23,52 +23,52 @@ func New(log *logger.Logger) *Middleware {
 
 // GinZap возвращает middleware для логирования запросов с использованием zap
 func (l Middleware) GinZap() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        start := time.Now()
-        path := c.Request.URL.Path
-        raw := c.Request.URL.RawQuery
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		raw := c.Request.URL.RawQuery
 
-        c.Next()
+		c.Next()
 
-        latency := time.Since(start)
+		latency := time.Since(start)
 
-        if raw != "" {
-            path = path + "?" + raw
-        }
+		if raw != "" {
+			path = path + "?" + raw
+		}
 
-        // Получение размера содержимого ответа
-        contentLength := c.Writer.Header().Get("Content-Length")
-        if contentLength == "" {
-            contentLength = "0"
-        }
+		// Получение размера содержимого ответа
+		contentLength := c.Writer.Header().Get("Content-Length")
+		if contentLength == "" {
+			contentLength = "0"
+		}
 
-        // Преобразование размера содержимого в int
-        contentLengthInt, err := strconv.Atoi(contentLength)
-        if err != nil {
-            l.Logger.Error("failed to parse content length", zap.String("content_length", contentLength), zap.Error(err))
-            contentLengthInt = 0 // или установите значение по умолчанию
-        }
+		// Преобразование размера содержимого в int
+		contentLengthInt, err := strconv.Atoi(contentLength)
+		if err != nil {
+			l.Logger.Error("failed to parse content length", zap.String("content_length", contentLength), zap.Error(err))
+			contentLengthInt = 0 // или установите значение по умолчанию
+		}
 
-        // Получение и парсинг значения заголовка X-Response-Time
-        latencyStr := c.Writer.Header().Get("X-Response-Time")
-        var parsedLatency time.Duration
-        if latencyStr != "" {
-            parsedLatency, err = time.ParseDuration(latencyStr)
-            if err != nil {
-                l.Logger.Error("failed to parse latency", zap.String("latency", latencyStr), zap.Error(err))
-                parsedLatency = 0 // или установите значение по умолчанию
-            }
-        }
+		// Получение и парсинг значения заголовка X-Response-Time
+		latencyStr := c.Writer.Header().Get("X-Response-Time")
+		var parsedLatency time.Duration
+		if latencyStr != "" {
+			parsedLatency, err = time.ParseDuration(latencyStr)
+			if err != nil {
+				l.Logger.Error("failed to parse latency", zap.String("latency", latencyStr), zap.Error(err))
+				parsedLatency = 0 // или установите значение по умолчанию
+			}
+		}
 
-        l.Logger.Info("incoming request",
-            zap.String("method", c.Request.Method),
-            zap.String("path", path),
-            zap.Duration("latency", latency),
-            zap.Int("status", c.Writer.Status()),
-            zap.String("client_ip", c.ClientIP()),
-            zap.String("user_agent", c.Request.UserAgent()),
-            zap.Int("content_length", contentLengthInt),
-            zap.Duration("parsed_latency", parsedLatency),
-        )
-    }
+		l.Logger.Info("incoming request",
+			zap.String("method", c.Request.Method),
+			zap.String("path", path),
+			zap.Duration("latency", latency),
+			zap.Int("status", c.Writer.Status()),
+			zap.String("client_ip", c.ClientIP()),
+			zap.String("user_agent", c.Request.UserAgent()),
+			zap.Int("content_length", contentLengthInt),
+			zap.Duration("parsed_latency", parsedLatency),
+		)
+	}
 }

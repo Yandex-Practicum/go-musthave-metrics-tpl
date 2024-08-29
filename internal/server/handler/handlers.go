@@ -4,10 +4,90 @@ import (
 	"bytes"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vova4o/yandexadv/internal/models"
 )
+
+// GetValueHandlerJSON обработчик для передачи значения метрики в формате JSON
+func (s *Router) GetValueHandlerJSON(c *gin.Context) {
+    var metricReq models.Metrics
+
+    // Парсинг JSON-запроса
+    if err := c.ShouldBindJSON(&metricReq); err != nil {
+        log.Printf("Failed to bind JSON: %v", err)
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    log.Printf("Received GET JSON request for metric: %v", metricReq)
+
+    // Получение значения метрики
+    metricResp, err := s.Service.GetValueServJSON(metricReq)
+    if err != nil {
+        log.Printf("Failed to get value: %v", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    log.Printf("Retrieved metric response: %v", metricResp)
+
+    // // Создание копии структуры с заполненными значениями
+    // responseMetric := models.Metrics{
+    //     ID:    metricResp.ID,
+    //     MType: metricResp.MType,
+    // }
+
+    // if metricResp.Value != nil {
+    //     value := *metricResp.Value
+    //     responseMetric.Value = &value
+    // }
+
+    // if metricResp.Delta != nil {
+    //     delta := *metricResp.Delta
+    //     responseMetric.Delta = &delta
+    // }
+
+    // Возвращение JSON-ответа с заполненными значениями метрик
+    c.JSON(http.StatusOK, metricResp)
+}
+
+// UpdateMetricHandlerJSON обработчик для обновления метрики в формате JSON
+func (s *Router) UpdateMetricHandlerJSON(c *gin.Context) {
+    var metric models.Metrics
+    if err := c.BindJSON(&metric); err != nil {
+        log.Printf("Failed to bind JSON: %v", err)
+        c.String(http.StatusBadRequest, "bad request")
+        return
+    }
+
+    log.Printf("Received POST JSON metric for update: %v", metric)
+
+    // Преобразование указателей в значения
+    if metric.MType == "gauge" && metric.Value != nil {
+        value := *metric.Value
+        metric.Value = &value
+    } else if metric.MType == "counter" && metric.Delta != nil {
+        delta := *metric.Delta
+        metric.Delta = &delta
+    }
+
+    err := s.Service.UpdateServJSON(metric)
+
+    if err != nil {
+        if httpErr, ok := err.(*models.HTTPError); ok {
+            log.Printf("Error: %v", httpErr.Message)
+            c.String(httpErr.Status, httpErr.Message)
+            return
+        }
+        log.Printf("Internal server error: %v", err)
+        c.String(http.StatusInternalServerError, "internal server error")
+        return
+    }
+
+    c.Status(http.StatusOK)
+}
 
 // StatisticPage обработчик для страницы статистики
 func (s *Router) StatisticPage(c *gin.Context) {
@@ -29,39 +109,72 @@ func (s *Router) StatisticPage(c *gin.Context) {
 
 // UpdateMetricHandler обработчик для обновления метрики
 func (s *Router) UpdateMetricHandler(c *gin.Context) {
-	metric := models.Metric{
-		Type:  c.Param("type"),
-		Name:  c.Param("name"),
-		Value: c.Param("value"),
-	}
+    metricType := c.Param("type")
+    metricName := c.Param("name")
+    metricValue := c.Param("value")
 
-	err := s.Service.UpdateServ(metric)
-	if err != nil {
-		if httpErr, ok := err.(*models.HTTPError); ok {
-			log.Printf("Error: %v", httpErr.Message)
-			c.String(httpErr.Status, httpErr.Message)
-			return
-		}
-		log.Printf("Internal server error: %v", err)
-		c.String(http.StatusInternalServerError, "internal server error")
-		return
-	}
+    log.Printf("Received POST TEXT update request for metric: type=%s, name=%s, value=%s", metricType, metricName, metricValue)
 
-	c.Status(http.StatusOK)
+    var metric models.Metrics
+    switch metricType {
+    case "gauge":
+        value, err := strconv.ParseFloat(metricValue, 64)
+        if err != nil {
+            log.Printf("Failed to parse gauge value: %v", err)
+            c.String(http.StatusBadRequest, "invalid gauge value")
+            return
+        }
+        metric = models.Metrics{
+            ID:    metricName,
+            MType: metricType,
+            Value: &value,
+        }
+    case "counter":
+        delta, err := strconv.ParseInt(metricValue, 10, 64)
+        if err != nil {
+            log.Printf("Failed to parse counter value: %v", err)
+            c.String(http.StatusBadRequest, "invalid counter value")
+            return
+        }
+        metric = models.Metrics{
+            ID:    metricName,
+            MType: metricType,
+            Delta: &delta,
+        }
+    default:
+        log.Printf("Invalid metric type: %s", metricType)
+        c.String(http.StatusBadRequest, "invalid metric type")
+        return
+    }
+
+    err := s.Service.UpdateServJSON(metric)
+    if err != nil {
+        log.Printf("Failed to update metric: %v", err)
+        c.String(http.StatusInternalServerError, "failed to update metric")
+        return
+    }
+
+    log.Printf("Successfully updated metric: %v", metric)
+    c.Status(http.StatusOK)
 }
 
 // GetValueHandler обработчик для получения значения метрики
 func (s *Router) GetValueHandler(c *gin.Context) {
-	metric := models.Metric{
-		Type: c.Param("type"),
-		Name: c.Param("name"),
-	}
+    metric := models.Metrics{
+        MType: c.Param("type"),
+        ID:    c.Param("name"),
+    }
 
-	value, err := s.Service.GetValueServ(metric)
-	if err != nil {
-		c.String(http.StatusNotFound, models.ErrMetricNotFound.Error())
-		return
-	}
+    log.Printf("Received GET TEXT request for metric: %v", metric)
 
-	c.String(http.StatusOK, value)
+    value, err := s.Service.GetValueServ(metric)
+    if err != nil {
+        log.Printf("Failed to get value: %v", err)
+        c.String(http.StatusNotFound, models.ErrMetricNotFound.Error())
+        return
+    }
+
+    log.Printf("Retrieved value for metric %s of type %s: %v", metric.ID, metric.MType, value)
+
+    c.String(http.StatusOK, value)
 }

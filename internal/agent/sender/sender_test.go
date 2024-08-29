@@ -10,26 +10,37 @@ import (
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
 )
 
+// toFloat64Pointer преобразует значение float64 в указатель на float64
+func toFloat64Pointer(value float64) *float64 {
+	return &value
+}
+
+// toInt64Pointer преобразует значение int64 в указатель на int64
+func toInt64Pointer(value int64) *int64 {
+	return &value
+}
+
 func TestSendMetrics(t *testing.T) {
 	tests := []struct {
 		name        string
-		metricsData []metrics.Metric
+		metricsData []metrics.Metrics
 		statusCode  int
 		expectError bool
 	}{
 		{
 			name: "Valid metrics",
-			metricsData: []metrics.Metric{
-				{Type: "gauge", Name: "metric1", Value: 1.23},
-				{Type: "counter", Name: "metric2", Value: 10},
+			metricsData: []metrics.Metrics{
+				{MType: "gauge", ID: "metric1", Value: toFloat64Pointer(1.23)},
+				{MType: "counter", ID: "metric2", Delta: toInt64Pointer(10)},
+				{MType: "counter", ID: "metric3", Delta: toInt64Pointer(0)},
 			},
 			statusCode:  http.StatusOK,
 			expectError: false,
 		},
 		// {
 		//     name: "Server error",
-		//     metricsData: []metrics.Metric{
-		//         {Type: "gauge", Name: "metric1", Value: 1.23},
+		//     metricsData: []metrics.Metrics{
+		//         {MType: "gaug", ID: "metric1", Value: nil},
 		//     },
 		//     statusCode:  http.StatusInternalServerError,
 		//     expectError: true,
@@ -53,7 +64,7 @@ func TestSendMetrics(t *testing.T) {
 
 			client := resty.New()
 			for _, metric := range tt.metricsData {
-				url := fmt.Sprintf("%s/update/%s/%s/%v", server.URL, metric.Type, metric.Name, metric.Value)
+				url := fmt.Sprintf("%s/update/%s/%s/%v", server.URL, metric.MType, metric.ID, metric.Value)
 				resp, err := client.R().
 					SetHeader("Content-Type", "text/plain").
 					Post(url)
@@ -64,7 +75,7 @@ func TestSendMetrics(t *testing.T) {
 					}
 				} else {
 					if err != nil {
-						t.Errorf("Failed to send metric %s: %v", metric.Name, err)
+						t.Errorf("Failed to send metric %s: %v", metric.ID, err)
 					}
 					if resp.StatusCode() != tt.statusCode {
 						t.Errorf("Expected status code %d but got %d", tt.statusCode, resp.StatusCode())

@@ -9,7 +9,7 @@ import (
 // Storage структура для хранилища
 type Storage struct {
 	// Logger     Loggerer
-	MemStorage map[string]models.Metric
+	MemStorage map[string]models.Metrics
 	mu         sync.Mutex
 }
 
@@ -22,16 +22,16 @@ type Storage struct {
 // New создание нового хранилища
 func New() *Storage {
 	return &Storage{
-		MemStorage: make(map[string]models.Metric),
+		MemStorage: make(map[string]models.Metrics),
 	}
 }
 
 // MetrixStatistic получение статистики метрик
-func (s *Storage) MetrixStatistic() (map[string]interface{}, error) {
+func (s *Storage) MetrixStatistic() (map[string]models.Metrics, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var metrics = make(map[string]interface{})
+	var metrics = make(map[string]models.Metrics)
 
 	for metricType, metricValues := range s.MemStorage {
 		metrics[metricType] = metricValues
@@ -41,22 +41,24 @@ func (s *Storage) MetrixStatistic() (map[string]interface{}, error) {
 }
 
 // UpdateMetric обновление метрики
-func (s *Storage) UpdateMetric(metric models.Metric) error {
+func (s *Storage) UpdateMetric(metric models.Metrics) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.MemStorage[metric.Name] = metric
+	s.MemStorage[metric.ID] = metric
 	return nil
 }
 
-// GetValue получение значения метрики
-func (s *Storage) GetValue(metric models.Metric) (interface{}, error) {
+// GetValue получение значения метрики по ID метрики
+// возвращает значение метрики и ошибку
+// возвращает значение не указателем, а значением
+func (s *Storage) GetValue(metric models.Metrics) (*models.Metrics, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if value, ok := s.MemStorage[metric.Name]; ok {
-		return value.Value, nil
+	if val, ok := s.MemStorage[metric.ID]; ok {
+		return &val, nil
 	}
 
-	return "", models.ErrMetricNotFound
+	return nil, models.ErrMetricNotFound
 }
