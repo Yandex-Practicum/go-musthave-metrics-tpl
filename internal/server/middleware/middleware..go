@@ -1,7 +1,11 @@
 package middleware
 
 import (
+	"compress/gzip"
+	"io"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,8 +25,59 @@ func New(log *logger.Logger) *Middleware {
 	}
 }
 
+// GzipReader - обертка для gzip.Reader
+type GzipReader struct {
+    io.ReadCloser
+    reader *gzip.Reader
+}
+
+func (g *GzipReader) Read(p []byte) (int, error) {
+    return g.reader.Read(p)
+}
+
+// GunzipMiddleware - middleware для распаковки запросов
+func (m Middleware) GunzipMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        if strings.Contains(c.GetHeader("Content-Encoding"), "gzip") {
+            gz, err := gzip.NewReader(c.Request.Body)
+            if err != nil {
+                c.AbortWithStatus(http.StatusBadRequest)
+                return
+            }
+            defer gz.Close()
+
+            c.Request.Body = &GzipReader{c.Request.Body, gz}
+        }
+        c.Next()
+    }
+}
+
+// GzipWriter - обертка для gzip.Writer
+type GzipWriter struct {
+    gin.ResponseWriter
+    writer *gzip.Writer
+}
+
+func (g *GzipWriter) Write(data []byte) (int, error) {
+    return g.writer.Write(data)
+}
+
+// GzipMiddleware - middleware для сжатия ответов
+func (m Middleware) GzipMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+            gz := gzip.NewWriter(c.Writer)
+            defer gz.Close()
+
+            c.Writer = &GzipWriter{c.Writer, gz}
+            c.Header("Content-Encoding", "gzip")
+        }
+        c.Next()
+    }
+}
+
 // GinZap возвращает middleware для логирования запросов с использованием zap
-func (l Middleware) GinZap() gin.HandlerFunc {
+func (m Middleware) GinZap() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
@@ -45,7 +100,7 @@ func (l Middleware) GinZap() gin.HandlerFunc {
 		// Преобразование размера содержимого в int
 		contentLengthInt, err := strconv.Atoi(contentLength)
 		if err != nil {
-			l.Logger.Error("failed to parse content length", zap.String("content_length", contentLength), zap.Error(err))
+			m.Logger.Error("failed to parse content length", zap.String("content_length", contentLength), zap.Error(err))
 			contentLengthInt = 0 // или установите значение по умолчанию
 		}
 
@@ -55,12 +110,12 @@ func (l Middleware) GinZap() gin.HandlerFunc {
 		if latencyStr != "" {
 			parsedLatency, err = time.ParseDuration(latencyStr)
 			if err != nil {
-				l.Logger.Error("failed to parse latency", zap.String("latency", latencyStr), zap.Error(err))
+				m.Logger.Error("failed to parse latency", zap.String("latency", latencyStr), zap.Error(err))
 				parsedLatency = 0 // или установите значение по умолчанию
 			}
 		}
 
-		l.Logger.Info("incoming request",
+		m.Logger.Info("incoming request",
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),
 			zap.Duration("latency", latency),

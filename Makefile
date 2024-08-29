@@ -110,3 +110,19 @@ iter7:
 		-server-port=$${SERVER_PORT} \
 		-source-path=.
 
+iter8:
+	@echo "iter8 starting tests for eighth iteration"
+	@SERVER_PORT=8080 \
+	ADDRESS="localhost:8080"; \
+	cd ./cmd/server/ && \
+	go build -o server && \
+	cd - && \
+	cd ./cmd/agent/ && \
+	go build -o agent && \
+	cd - && \
+	chmod +x ./metricstest && \
+	./metricstest -test.v -test.run=^TestIteration8$$ \
+		-binary-path=cmd/server/server \
+		-agent-binary-path=cmd/agent/agent \
+		-server-port=$${SERVER_PORT} \
+		-source-path=.

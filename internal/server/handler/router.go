@@ -17,6 +17,8 @@ type Router struct {
 // Middlewarer интерфейс для middleware
 type Middlewarer interface {
 	GinZap() gin.HandlerFunc
+	GunzipMiddleware() gin.HandlerFunc
+	GzipMiddleware() gin.HandlerFunc
 }
 
 // Servicer интерфейс для сервиса
@@ -41,6 +43,8 @@ func New(s Servicer, middleware Middlewarer) *Router {
 func (s *Router) RegisterRoutes() {
 
 	s.mux.Use(s.Middl.GinZap())
+	s.mux.Use(s.Middl.GunzipMiddleware())
+	s.mux.Use(s.Middl.GzipMiddleware())
 
 	s.mux.POST("/update/:type/:name/:value", s.UpdateMetricHandler)
 	s.mux.GET("/value/:type/:name", s.GetValueHandler)
