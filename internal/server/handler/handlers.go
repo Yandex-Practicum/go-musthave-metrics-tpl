@@ -64,16 +64,16 @@ func (s *Router) UpdateMetricHandlerJSON(c *gin.Context) {
 
     log.Printf("Received POST JSON metric for update: %v", metric)
 
-    // Преобразование указателей в значения
-    if metric.MType == "gauge" && metric.Value != nil {
-        value := *metric.Value
-        metric.Value = &value
-    } else if metric.MType == "counter" && metric.Delta != nil {
-        delta := *metric.Delta
-        metric.Delta = &delta
-    }
+    // // Преобразование указателей в значения
+    // if metric.MType == "gauge" && metric.Value != nil {
+    //     value := *metric.Value
+    //     metric.Value = &value
+    // } else if metric.MType == "counter" && metric.Delta != nil {
+    //     delta := *metric.Delta
+    //     metric.Delta = &delta
+    // }
 
-    err := s.Service.UpdateServJSON(metric)
+    err := s.Service.UpdateServJSON(&metric)
 
     if err != nil {
         if httpErr, ok := err.(*models.HTTPError); ok {
@@ -86,7 +86,16 @@ func (s *Router) UpdateMetricHandlerJSON(c *gin.Context) {
         return
     }
 
-    c.Status(http.StatusOK)
+    updatedVal, err := s.Service.GetValueServJSON(metric)
+    if err != nil {
+        log.Printf("Failed to get updated value: %v", err)
+        c.String(http.StatusInternalServerError, "internal server error")
+        return
+    }
+
+    log.Printf("Successfully updated metric: %v", updatedVal)
+
+    c.JSON(http.StatusOK, updatedVal)
 }
 
 // StatisticPage обработчик для страницы статистики
@@ -147,7 +156,7 @@ func (s *Router) UpdateMetricHandler(c *gin.Context) {
         return
     }
 
-    err := s.Service.UpdateServJSON(metric)
+    err := s.Service.UpdateServJSON(&metric)
     if err != nil {
         log.Printf("Failed to update metric: %v", err)
         c.String(http.StatusInternalServerError, "failed to update metric")

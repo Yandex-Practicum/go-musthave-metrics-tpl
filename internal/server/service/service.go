@@ -33,7 +33,7 @@ func New(s Storager) *Service {
 // GetValueServJSON получение значения метрики в формате JSON
 func (s *Service) GetValueServJSON(metric models.Metrics) (*models.Metrics, error) {
     // Проверка метрики
-    if err := validateMetricJSON(metric); err != nil {
+    if err := validateMetricJSON(&metric); err != nil {
         return nil, err
     }
 
@@ -49,7 +49,7 @@ func (s *Service) GetValueServJSON(metric models.Metrics) (*models.Metrics, erro
 
 
 // UpdateServJSON обновление метрики в формате JSON
-func (s *Service) UpdateServJSON(metric models.Metrics) error {
+func (s *Service) UpdateServJSON(metric *models.Metrics) error {
 	// Проверка метрики
 	if err := validateMetricJSON(metric); err != nil {
 		return err
@@ -150,7 +150,7 @@ func (s *Service) MetrixStatistic() (*template.Template, map[string]models.Metri
 // GetValueServ получение значения метрики
 func (s *Service) GetValueServ(metric models.Metrics) (string, error) {
 	// Проверка метрики
-	if err := validateMetricJSON(metric); err != nil {
+	if err := validateMetricJSON(&metric); err != nil {
 		return "", err
 	}
 
@@ -263,7 +263,7 @@ func validateMetric(metric models.Metric) error {
 }
 
 // validateMetric проверяет метрику на наличие ошибок
-func validateMetricJSON(metric models.Metrics) error {
+func validateMetricJSON(metric *models.Metrics) error {
 	if metric.MType == "" {
 		log.Println("metricType cannot be empty")
 		return models.NewHTTPError(http.StatusBadRequest, "metricType cannot be empty")

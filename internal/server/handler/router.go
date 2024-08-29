@@ -22,7 +22,7 @@ type Middlewarer interface {
 // Servicer интерфейс для сервиса
 type Servicer interface {
 	UpdateServ(metric models.Metric) error
-	UpdateServJSON(metric models.Metrics) error
+	UpdateServJSON(metric *models.Metrics) error
 	GetValueServ(metric models.Metrics) (string, error)
 	GetValueServJSON(metric models.Metrics) (*models.Metrics, error)
 	MetrixStatistic() (*template.Template, map[string]models.Metrics, error)
