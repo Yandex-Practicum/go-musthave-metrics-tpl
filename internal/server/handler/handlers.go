@@ -26,28 +26,17 @@ func (s *Router) GetValueHandlerJSON(c *gin.Context) {
     // Получение значения метрики
     metricResp, err := s.Service.GetValueServJSON(metricReq)
     if err != nil {
-        log.Printf("Failed to get value: %v", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        if err == models.ErrMetricNotFound {
+            log.Printf("Metric not found: %v", err)
+            c.String(http.StatusNotFound, "metric not found")
+            return
+        }
+        log.Printf("Failed to get updated value: %v", err)
+        c.String(http.StatusInternalServerError, "internal server error")
         return
     }
 
     log.Printf("Retrieved metric response: %v", metricResp)
-
-    // // Создание копии структуры с заполненными значениями
-    // responseMetric := models.Metrics{
-    //     ID:    metricResp.ID,
-    //     MType: metricResp.MType,
-    // }
-
-    // if metricResp.Value != nil {
-    //     value := *metricResp.Value
-    //     responseMetric.Value = &value
-    // }
-
-    // if metricResp.Delta != nil {
-    //     delta := *metricResp.Delta
-    //     responseMetric.Delta = &delta
-    // }
 
     // Возвращение JSON-ответа с заполненными значениями метрик
     c.JSON(http.StatusOK, metricResp)
@@ -88,6 +77,11 @@ func (s *Router) UpdateMetricHandlerJSON(c *gin.Context) {
 
     updatedVal, err := s.Service.GetValueServJSON(metric)
     if err != nil {
+        if err == models.ErrMetricNotFound {
+            log.Printf("Metric not found: %v", err)
+            c.String(http.StatusNotFound, "metric not found")
+            return
+        }
         log.Printf("Failed to get updated value: %v", err)
         c.String(http.StatusInternalServerError, "internal server error")
         return

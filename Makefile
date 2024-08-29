@@ -97,7 +97,6 @@ iter7:
 	@echo "iter7 starting tests for seventh iteration"
 	@SERVER_PORT=8080 \
 	ADDRESS="localhost:8080" \
-	TEMP_FILE="/tmp/tempfile" \
 	cd ./cmd/server/ && \
 	go build -o server && \
 	cd - && \
