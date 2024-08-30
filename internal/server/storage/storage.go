@@ -3,6 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -21,12 +22,6 @@ type Storage struct {
 	mu          sync.Mutex
 }
 
-// // Loggerer интерфейс для логгера
-// type Loggerer interface {
-// 	Info(string, ...zap.Field)
-// 	Error(string, ...zap.Field)
-// }
-
 // New создание нового хранилища
 func New() *Storage {
 	return &Storage{
@@ -43,6 +38,7 @@ func StartFileStorageLogic(config *flags.Config, s *Storage, logger *logger.Logg
 		}
 	} else {
 		logger.Info("File storage is not specified")
+		return
 	}
 
 	if config.Restore {
@@ -54,7 +50,11 @@ func StartFileStorageLogic(config *flags.Config, s *Storage, logger *logger.Logg
 
 	go func() {
 		for {
-			time.Sleep(time.Duration(config.StoreInterval) * time.Second)
+			interval := time.Duration(config.StoreInterval) * time.Second
+			// if interval == 0 {
+			// 	interval = 100 * time.Microsecond // Установите разумное значение по умолчанию
+			// }
+			time.Sleep(interval)
 			s.SaveMemStorageToFile()
 		}
 	}()
@@ -87,19 +87,19 @@ func (s *Storage) SaveMemStorageToFile() error {
 
 	// Очистка файла
 	if err := s.FileStorage.Truncate(0); err != nil {
+		log.Fatal(err)
 		return fmt.Errorf("failed to truncate file: %w", err)
 	}
 
 	// Установка указателя файла в начало
 	if _, err := s.FileStorage.Seek(0, 0); err != nil {
+		log.Fatal(err)
 		return fmt.Errorf("failed to seek file: %w", err)
 	}
 
-	// Запись данных из памяти в файл
-	for _, metric := range s.MemStorage {
-		if err := s.Encoder.Encode(metric); err != nil {
-			return fmt.Errorf("failed to encode metric: %w", err)
-		}
+	if err := s.Encoder.Encode(s.MemStorage); err != nil {
+		log.Fatal(err)
+		return fmt.Errorf("failed to encode metrics: %w", err)
 	}
 
 	return nil
@@ -119,16 +119,16 @@ func (s *Storage) LoadMemStorageFromFile() error {
 	decoder := json.NewDecoder(s.FileStorage)
 
 	// Чтение данных из файла
-	var metric models.Metrics
+	var metrics map[string]models.Metrics
 	for {
-		if err := decoder.Decode(&metric); err != nil {
+		if err := decoder.Decode(&metrics); err != nil {
 			if err.Error() == "EOF" {
 				break
 			}
 			return fmt.Errorf("failed to decode metric: %w", err)
 		}
 
-		s.MemStorage[metric.ID] = metric
+		s.MemStorage = metrics
 	}
 
 	return nil
@@ -154,6 +154,7 @@ func (s *Storage) UpdateMetric(metric models.Metrics) error {
 	defer s.mu.Unlock()
 
 	s.MemStorage[metric.ID] = metric
+
 	return nil
 }
 

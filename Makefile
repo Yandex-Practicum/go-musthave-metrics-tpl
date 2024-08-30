@@ -128,7 +128,7 @@ iter8:
 		-source-path=.
 
 iter9:
-	@echo "iter9 starting tests for eighth iteration"
+	@echo "iter9 starting tests for nine iteration"
 	@SERVER_PORT=8080 \
 	ADDRESS="localhost:8080"; \
 	TEMP_FILE="tempfile.json"; \

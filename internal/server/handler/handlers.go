@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -16,7 +15,7 @@ func (s *Router) GetValueHandlerJSON(c *gin.Context) {
 
 	// Парсинг JSON-запроса
 	if err := c.ShouldBindJSON(&metricReq); err != nil {
-		log.Printf("Failed to bind JSON: %v", err)
+		// log.Printf("Failed to bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -27,11 +26,11 @@ func (s *Router) GetValueHandlerJSON(c *gin.Context) {
 	metricResp, err := s.Service.GetValueServJSON(metricReq)
 	if err != nil {
 		if err == models.ErrMetricNotFound {
-			log.Printf("Metric not found: %v", err)
+			// log.Printf("Metric not found: %v", err)
 			c.String(http.StatusNotFound, "metric not found")
 			return
 		}
-		log.Printf("Failed to get updated value: %v", err)
+		// log.Printf("Failed to get updated value: %v", err)
 		c.String(http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -46,12 +45,12 @@ func (s *Router) GetValueHandlerJSON(c *gin.Context) {
 func (s *Router) UpdateMetricHandlerJSON(c *gin.Context) {
 	var metric models.Metrics
 	if err := c.BindJSON(&metric); err != nil {
-		log.Printf("Failed to bind JSON: %v", err)
+		// log.Printf("Failed to bind JSON: %v", err)
 		c.String(http.StatusBadRequest, "bad request")
 		return
 	}
 
-	// log.Printf("Received POST JSON metric for update: %v", metric)
+    // log.Printf("Received POST JSON metric for update: ID=%s, Type=%s, Delta=%v, Value=%v", metric.ID, metric.MType, metric.Delta, metric.Value)
 
 	// // Преобразование указателей в значения
 	// if metric.MType == "gauge" && metric.Value != nil {
@@ -66,11 +65,11 @@ func (s *Router) UpdateMetricHandlerJSON(c *gin.Context) {
 
 	if err != nil {
 		if httpErr, ok := err.(*models.HTTPError); ok {
-			log.Printf("Error: %v", httpErr.Message)
+			// log.Printf("Error: %v", httpErr.Message)
 			c.String(httpErr.Status, httpErr.Message)
 			return
 		}
-		log.Printf("Internal server error: %v", err)
+		// log.Printf("Internal server error: %v", err)
 		c.String(http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -78,11 +77,11 @@ func (s *Router) UpdateMetricHandlerJSON(c *gin.Context) {
 	updatedVal, err := s.Service.GetValueServJSON(metric)
 	if err != nil {
 		if err == models.ErrMetricNotFound {
-			log.Printf("Metric not found: %v", err)
+			// log.Printf("Metric not found: %v", err)
 			c.String(http.StatusNotFound, "metric not found")
 			return
 		}
-		log.Printf("Failed to get updated value: %v", err)
+		// log.Printf("Failed to get updated value: %v", err)
 		c.String(http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -123,7 +122,7 @@ func (s *Router) UpdateMetricHandler(c *gin.Context) {
 	case "gauge":
 		value, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			log.Printf("Failed to parse gauge value: %v", err)
+			// log.Printf("Failed to parse gauge value: %v", err)
 			c.String(http.StatusBadRequest, "invalid gauge value")
 			return
 		}
@@ -135,7 +134,7 @@ func (s *Router) UpdateMetricHandler(c *gin.Context) {
 	case "counter":
 		delta, err := strconv.ParseInt(metricValue, 10, 64)
 		if err != nil {
-			log.Printf("Failed to parse counter value: %v", err)
+			// log.Printf("Failed to parse counter value: %v", err)
 			c.String(http.StatusBadRequest, "invalid counter value")
 			return
 		}
@@ -145,14 +144,14 @@ func (s *Router) UpdateMetricHandler(c *gin.Context) {
 			Delta: &delta,
 		}
 	default:
-		log.Printf("Invalid metric type: %s", metricType)
+		// log.Printf("Invalid metric type: %s", metricType)
 		c.String(http.StatusBadRequest, "invalid metric type")
 		return
 	}
 
 	err := s.Service.UpdateServJSON(&metric)
 	if err != nil {
-		log.Printf("Failed to update metric: %v", err)
+		// log.Printf("Failed to update metric: %v", err)
 		c.String(http.StatusInternalServerError, "failed to update metric")
 		return
 	}
@@ -172,7 +171,7 @@ func (s *Router) GetValueHandler(c *gin.Context) {
 
 	value, err := s.Service.GetValueServ(metric)
 	if err != nil {
-		log.Printf("Failed to get value: %v", err)
+		// log.Printf("Failed to get value: %v", err)
 		c.String(http.StatusNotFound, models.ErrMetricNotFound.Error())
 		return
 	}
