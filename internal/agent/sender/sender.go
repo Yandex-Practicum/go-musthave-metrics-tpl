@@ -122,5 +122,3 @@ func SendMetricsJSON(address string, metricsData []metrics.Metrics) {
 		}
 	}
 }
-
-

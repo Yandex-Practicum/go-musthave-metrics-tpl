@@ -32,10 +32,10 @@ func New(s Storager) *Service {
 
 // GetValueServJSON получение значения метрики в формате JSON
 func (s *Service) GetValueServJSON(metric models.Metrics) (*models.Metrics, error) {
-    // Проверка метрики
-    if err := validateMetricJSON(&metric); err != nil {
-        return nil, err
-    }
+	// Проверка метрики
+	if err := validateMetricJSON(&metric); err != nil {
+		return nil, err
+	}
 
 	value, err := s.Storage.GetValue(metric)
 	if err != nil {
@@ -47,7 +47,6 @@ func (s *Service) GetValueServJSON(metric models.Metrics) (*models.Metrics, erro
 
 }
 
-
 // UpdateServJSON обновление метрики в формате JSON
 func (s *Service) UpdateServJSON(metric *models.Metrics) error {
 	// Проверка метрики
@@ -58,8 +57,8 @@ func (s *Service) UpdateServJSON(metric *models.Metrics) error {
 	switch metric.MType {
 	case "gauge":
 		s.Storage.UpdateMetric(models.Metrics{
-			MType:  metric.MType,
-			ID:  metric.ID,
+			MType: metric.MType,
+			ID:    metric.ID,
 			Value: metric.Value,
 		})
 
@@ -67,7 +66,7 @@ func (s *Service) UpdateServJSON(metric *models.Metrics) error {
 		// Получение старого значения счетчика
 		counterVal, err := s.GetValueServ(models.Metrics{
 			MType: metric.MType,
-			ID: metric.ID,
+			ID:    metric.ID,
 		})
 		if err != nil {
 			if errors.Is(err, models.ErrMetricNotFound) {
@@ -80,18 +79,18 @@ func (s *Service) UpdateServJSON(metric *models.Metrics) error {
 		if counterVal == "" {
 			counterVal = "0"
 		}
-	
+
 		counterInt, err := strconv.Atoi(counterVal)
 		if err != nil {
 			log.Printf("failed to convert value to int: %v", err)
 			return models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to convert value to int: %v", err))
 		}
-		
+
 		// Добавление старого значения к новому
 		totalValue := *metric.Delta + int64(counterInt)
 		s.Storage.UpdateMetric(models.Metrics{
-			MType:  metric.MType,
-			ID:  metric.ID,
+			MType: metric.MType,
+			ID:    metric.ID,
 			Delta: &totalValue,
 		})
 	default:
@@ -191,19 +190,19 @@ func (s *Service) UpdateServ(metric models.Metric) error {
 			log.Printf("failed to assert value to string: %v", metric.Value)
 			return models.NewHTTPError(http.StatusInternalServerError, "failed to assert value to string")
 		}
-	
+
 		valueFloat, err := strconv.ParseFloat(valueStr, 64)
 		if err != nil {
 			log.Printf("failed to convert value to float: %v", err)
 			return models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to convert value to float: %v", err))
 		}
-	
+
 		s.Storage.UpdateMetric(models.Metrics{
 			MType: metric.Type,
 			ID:    metric.Name,
 			Value: &valueFloat,
 		})
-	
+
 	case "counter":
 		// Обработка для типа counter
 		valueStr, ok := metric.Value.(string)
@@ -211,13 +210,13 @@ func (s *Service) UpdateServ(metric models.Metric) error {
 			log.Printf("failed to assert value to string: %v", metric.Value)
 			return models.NewHTTPError(http.StatusInternalServerError, "failed to assert value to string")
 		}
-	
+
 		valueInt, err := strconv.ParseInt(valueStr, 10, 64)
 		if err != nil {
 			log.Printf("failed to convert value to int64: %v", err)
 			return models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to convert value to int64: %v", err))
 		}
-	
+
 		// Получение старого значения счетчика
 		counterVal, err := s.GetValueServ(models.Metrics{
 			MType: metric.Type,
@@ -230,13 +229,13 @@ func (s *Service) UpdateServ(metric models.Metric) error {
 				return err
 			}
 		}
-	
+
 		counterInt, err := strconv.ParseInt(counterVal, 10, 64)
 		if err != nil {
 			log.Printf("failed to convert value to int64: %v", err)
 			return models.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to convert value to int64: %v", err))
 		}
-	
+
 		// Добавление старого значения к новому
 		totalValue := valueInt + counterInt
 		s.Storage.UpdateMetric(models.Metrics{
@@ -244,11 +243,11 @@ func (s *Service) UpdateServ(metric models.Metric) error {
 			ID:    metric.Name,
 			Delta: &totalValue,
 		})
-	
+
 	default:
 		return models.NewHTTPError(http.StatusBadRequest, "unsupported metric type")
 	}
-	
+
 	return nil
 }
 

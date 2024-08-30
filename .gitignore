@@ -28,3 +28,6 @@ metricstest
 coverage.html
 serverlog.log
 agentlog.log
+metrics-db.json
+tempfile
+tempfile.json

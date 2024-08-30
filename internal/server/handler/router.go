@@ -1,7 +1,11 @@
 package handler
 
 import (
+	"context"
 	"html/template"
+	"log"
+	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vova4o/yandexadv/internal/models"
@@ -12,6 +16,9 @@ type Router struct {
 	Middl   Middlewarer
 	mux     *gin.Engine
 	Service Servicer
+	server  *http.Server
+	stopCh  chan struct{}
+	mu      sync.Mutex
 }
 
 // Middlewarer интерфейс для middleware
@@ -32,10 +39,14 @@ type Servicer interface {
 
 // New создание нового роутера
 func New(s Servicer, middleware Middlewarer) *Router {
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+
 	return &Router{
 		Middl:   middleware,
-		mux:     gin.Default(),
+		mux:     router,
 		Service: s,
+		stopCh:  make(chan struct{}),
 	}
 }
 
@@ -55,9 +66,30 @@ func (s *Router) RegisterRoutes() {
 
 // StartServer запуск сервера
 func (s *Router) StartServer(addr string) error {
-	// Запуск сервера с использованием Gin
-	if err := s.mux.Run(addr); err != nil {
-		return err
+	s.mu.Lock()
+	// Создание http.Server с использованием Gin
+	s.server = &http.Server{
+		Addr:    addr,
+		Handler: s.mux,
 	}
+	s.mu.Unlock()
+
+	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		// Логирование ошибки, если сервер не смог запуститься
+		log.Println("failed to start server", err)
+		panic(err)
+	}
+
+	<-s.stopCh
 	return nil
+}
+
+// StopServer остановка сервера
+func (s *Router) StopServer(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	close(s.stopCh)
+	// Остановка сервера с использованием контекста
+	return s.server.Shutdown(ctx)
 }

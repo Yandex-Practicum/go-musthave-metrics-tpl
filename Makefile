@@ -126,3 +126,22 @@ iter8:
 		-agent-binary-path=cmd/agent/agent \
 		-server-port=$${SERVER_PORT} \
 		-source-path=.
+
+iter9:
+	@echo "iter9 starting tests for eighth iteration"
+	@SERVER_PORT=8080 \
+	ADDRESS="localhost:8080"; \
+	TEMP_FILE="tempfile.json"; \
+	cd ./cmd/server/ && \
+	go build -o server && \
+	cd - && \
+	cd ./cmd/agent/ && \
+	go build -o agent && \
+	cd - && \
+	chmod +x ./metricstest && \
+	./metricstest -test.v -test.run=^TestIteration9$ \
+		-agent-binary-path=cmd/agent/agent \
+		-binary-path=cmd/server/server \
+		-file-storage-path=$$TEMP_FILE \
+		-server-port=$$SERVER_PORT \
+		-source-path=.

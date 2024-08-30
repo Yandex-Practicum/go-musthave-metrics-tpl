@@ -8,11 +8,11 @@ import (
 
 // mockService представляет собой мок-реализацию интерфейса Servicer
 type mockService struct {
-	updateFuncJSON  func(metric *models.Metrics) error
-	updateFunc      func(metric models.Metric) error
-	MocGetValueServ func(metric models.Metrics) (string, error)
-	WebPageFunc     func() (*template.Template, map[string]models.Metrics, error)
-    getValueFuncJSON func(metric models.Metrics) (*models.Metrics, error)
+	updateFuncJSON      func(metric *models.Metrics) error
+	updateFunc          func(metric models.Metric) error
+	MocGetValueServ     func(metric models.Metrics) (string, error)
+	WebPageFunc         func() (*template.Template, map[string]models.Metrics, error)
+	getValueFuncJSON    func(metric models.Metrics) (*models.Metrics, error)
 	MocGetValueServJSON func(metric models.Metrics) (*models.Metrics, error)
 }
 
@@ -22,7 +22,7 @@ func (m *mockService) GetValueServJSON(metric models.Metrics) (*models.Metrics, 
 
 func (m *mockService) UpdateServJSON(metric *models.Metrics) error {
 	if m.updateFuncJSON == nil {
-	return m.updateFuncJSON(metric)
+		return m.updateFuncJSON(metric)
 	}
 	return nil
 }
@@ -40,5 +40,5 @@ func (m *mockService) MetrixStatistic() (*template.Template, map[string]models.M
 }
 
 func (m *mockService) GetValueFuncJSON(metric models.Metrics) (*models.Metrics, error) {
-    return m.getValueFuncJSON(metric)
+	return m.getValueFuncJSON(metric)
 }

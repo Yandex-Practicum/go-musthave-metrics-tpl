@@ -7,8 +7,8 @@ import (
 
 // Logger структура для логгера
 type Logger struct {
-	zapLogger   *zap.Logger
-	atomicLevel zap.AtomicLevel
+	ZapLogger   *zap.Logger
+	AtomicLevel zap.AtomicLevel
 }
 
 // NewLogger создает новый экземпляр Logger
@@ -55,30 +55,30 @@ func NewLogger(level string, logFile string) (*Logger, error) {
 		return nil, err
 	}
 
-	return &Logger{zapLogger: zapLogger, atomicLevel: atomicLevel}, nil
+	return &Logger{ZapLogger: zapLogger, AtomicLevel: atomicLevel}, nil
 }
 
 // Info логирует информационные сообщения
 func (l *Logger) Info(msg string, fields ...zap.Field) {
-	l.zapLogger.Info(msg, fields...)
+	l.ZapLogger.Info(msg, fields...)
 }
 
 // Error логирует сообщения об ошибках
 func (l *Logger) Error(msg string, fields ...zap.Field) {
-	l.zapLogger.Error(msg, fields...)
+	l.ZapLogger.Error(msg, fields...)
 }
 
 // Debug логирует отладочные сообщения
 func (l *Logger) Debug(msg string, fields ...zap.Field) {
-	l.zapLogger.Debug(msg, fields...)
+	l.ZapLogger.Debug(msg, fields...)
 }
 
 // Warn логирует предупреждения
 func (l *Logger) Warn(msg string, fields ...zap.Field) {
-	l.zapLogger.Warn(msg, fields...)
+	l.ZapLogger.Warn(msg, fields...)
 }
 
 // Sync синхронизирует логгер
 func (l *Logger) Sync() {
-	l.zapLogger.Sync()
+	l.ZapLogger.Sync()
 }

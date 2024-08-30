@@ -19,10 +19,21 @@ type Config struct {
 
 // GetFlags устанавливает и получает флаги
 func GetFlags() {
+	// Set the environment variable names
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	bindEnvToViper("ServerAddress", "ADDRESS")
+	bindEnvToViper("StoreInterval", "STORE_INTERVAL")
+	bindEnvToViper("FileStoragePath", "FILE_STORAGE_PATH")
+	bindEnvToViper("Restore", "RESTORE")
+	bindEnvToViper("ServerLoggerFile", "SERVER_LOGGER_FILE")
+
+	// Read the environment variables
+	viper.AutomaticEnv()
+
 	// Define the flags and bind them to viper
 	pflag.StringP("ServerAddress", "a", "localhost:8080", "HTTP server network address")
 	pflag.IntP("StoreInterval", "i", 300, "Interval in seconds to store the current server readings to disk")
-	pflag.StringP("FileStoragePath", "f", "/tmp/metrics-db.json", "Full filename where current values are saved")
+	pflag.StringP("FileStoragePath", "f", "metrics-db.json", "Full filename where current values are saved")
 	pflag.BoolP("Restore", "r", true, "Whether to load previously saved values from the specified file at server startup")
 	pflag.StringP("ServerLoggerFile", "l", "serverlog.log", "Full filename where server logs are saved")
 
@@ -42,17 +53,6 @@ func GetFlags() {
 	bindFlagToViper("FileStoragePath")
 	bindFlagToViper("Restore")
 	bindFlagToViper("ServerLoggerFile")
-
-	// Set the environment variable names
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	bindEnvToViper("ServerAddress", "ADDRESS")
-	bindEnvToViper("StoreInterval", "STORE_INTERVAL")
-	bindEnvToViper("FileStoragePath", "FILE_STORAGE_PATH")
-	bindEnvToViper("Restore", "RESTORE")
-	bindEnvToViper("ServerLoggerFile", "SERVER_LOGGER_FILE")
-
-	// Read the environment variables
-	viper.AutomaticEnv()
 }
 
 func bindFlagToViper(flagName string) {
