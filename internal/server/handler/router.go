@@ -35,7 +35,7 @@ type Servicer interface {
 	GetValueServ(metric models.Metrics) (string, error)
 	GetValueServJSON(metric models.Metrics) (*models.Metrics, error)
 	MetrixStatistic() (*template.Template, map[string]models.Metrics, error)
-	PingDb() error
+	PingDB() error
 }
 
 // New создание нового роутера

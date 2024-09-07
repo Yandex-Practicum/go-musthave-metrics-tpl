@@ -12,7 +12,7 @@ import (
 
 // PingHandler обработчик для проверки подключения к базе данных
 func (s *Router) PingHandler(c *gin.Context) {
-	err := s.Service.PingDb()
+	err := s.Service.PingDB()
 	if err != nil {
 		log.Printf("Failed to ping database: %v", err)
 		c.String(http.StatusInternalServerError, "internal server error")
