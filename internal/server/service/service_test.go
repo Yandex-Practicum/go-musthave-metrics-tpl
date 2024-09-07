@@ -33,6 +33,11 @@ func (m *MockStorager) MetrixStatistic() (map[string]models.Metrics, error) {
 	return args.Get(0).(map[string]models.Metrics), args.Error(1)
 }
 
+func (m *MockStorager) Ping() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 func TestUpdateServJSON(t *testing.T) {
 	mockStorage := new(MockStorager)
 	service := &Service{Storage: mockStorage}

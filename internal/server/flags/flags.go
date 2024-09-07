@@ -15,12 +15,14 @@ type Config struct {
 	FileStoragePath string
 	Restore         bool
 	ServerLogFile   string
+	DbDSN		   string
 }
 
 // GetFlags устанавливает и получает флаги
 func GetFlags() {
 	// Set the environment variable names
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	bindEnvToViper("DatabaseDSN", "DATABASE_DSN")
 	bindEnvToViper("ServerAddress", "ADDRESS")
 	bindEnvToViper("StoreInterval", "STORE_INTERVAL")
 	bindEnvToViper("FileStoragePath", "FILE_STORAGE_PATH")
@@ -31,6 +33,7 @@ func GetFlags() {
 	viper.AutomaticEnv()
 
 	// Define the flags and bind them to viper
+    pflag.StringP("DatabaseDSN", "d", "postgres://postgres:mypassword@localhost:5432/metrix?sslmode=disable", "Database DSN")
 	pflag.StringP("ServerAddress", "a", "localhost:8080", "HTTP server network address")
 	pflag.IntP("StoreInterval", "i", 300, "Interval in seconds to store the current server readings to disk")
 	pflag.StringP("FileStoragePath", "f", "metrics-db.json", "Full filename where current values are saved")
@@ -48,6 +51,7 @@ func GetFlags() {
 	}
 
 	// Bind the flags to viper
+	bindFlagToViper("DatabaseDSN")
 	bindFlagToViper("ServerAddress")
 	bindFlagToViper("StoreInterval")
 	bindFlagToViper("FileStoragePath")
@@ -76,7 +80,13 @@ func NewConfig() *Config {
 		FileStoragePath: FileStoragePath(),
 		Restore:         Restore(),
 		ServerLogFile:   ServerLogFile(),
+		DbDSN:		   DbDSN(),
 	}
+}
+
+// DbDSN возвращает строку подключения к базе данных
+func DbDSN() string {
+	return viper.GetString("DatabaseDSN")
 }
 
 // ServerLogFile возвращает путь к файлу логирования сервера

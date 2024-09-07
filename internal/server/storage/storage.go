@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/vova4o/yandexadv/internal/models"
 	"github.com/vova4o/yandexadv/internal/server/flags"
 	"github.com/vova4o/yandexadv/package/logger"
@@ -19,6 +21,7 @@ type Storage struct {
 	FileStorage *os.File
 	Encoder     *json.Encoder
 	MemStorage  map[string]models.Metrics
+	Db          *sql.DB
 	mu          sync.Mutex
 }
 
@@ -27,6 +30,29 @@ func New() *Storage {
 	return &Storage{
 		MemStorage: make(map[string]models.Metrics),
 	}
+}
+
+// DBConnect подключение к базе данных
+func DBConnect(config *flags.Config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", config.DbDSN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	return db, nil
+}
+
+// Ping проверка подключения к базе данных
+func (s *Storage) Ping() error {
+	if s.Db == nil {
+		return fmt.Errorf("database is not connected")
+	}
+	return s.Db.Ping()
 }
 
 // StartFileStorageLogic запуск логики хранения данных в файле

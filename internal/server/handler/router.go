@@ -35,6 +35,7 @@ type Servicer interface {
 	GetValueServ(metric models.Metrics) (string, error)
 	GetValueServJSON(metric models.Metrics) (*models.Metrics, error)
 	MetrixStatistic() (*template.Template, map[string]models.Metrics, error)
+	PingDb() error
 }
 
 // New создание нового роутера
@@ -62,6 +63,7 @@ func (s *Router) RegisterRoutes() {
 	s.mux.GET("/", s.StatisticPage)
 	s.mux.POST("/update/", s.UpdateMetricHandlerJSON)
 	s.mux.POST("/value/", s.GetValueHandlerJSON)
+	s.mux.GET("/ping", s.PingHandler)
 }
 
 // StartServer запуск сервера

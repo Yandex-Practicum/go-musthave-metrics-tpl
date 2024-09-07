@@ -2,12 +2,25 @@ package handler
 
 import (
 	"bytes"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vova4o/yandexadv/internal/models"
 )
+
+// PingHandler обработчик для проверки подключения к базе данных
+func (s *Router) PingHandler(c *gin.Context) {
+	err := s.Service.PingDb()
+	if err != nil {
+		log.Printf("Failed to ping database: %v", err)
+		c.String(http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	c.String(http.StatusOK, "pong")
+}
 
 // GetValueHandlerJSON обработчик для передачи значения метрики в формате JSON
 func (s *Router) GetValueHandlerJSON(c *gin.Context) {
@@ -50,7 +63,7 @@ func (s *Router) UpdateMetricHandlerJSON(c *gin.Context) {
 		return
 	}
 
-    // log.Printf("Received POST JSON metric for update: ID=%s, Type=%s, Delta=%v, Value=%v", metric.ID, metric.MType, metric.Delta, metric.Value)
+	// log.Printf("Received POST JSON metric for update: ID=%s, Type=%s, Delta=%v, Value=%v", metric.ID, metric.MType, metric.Delta, metric.Value)
 
 	// // Преобразование указателей в значения
 	// if metric.MType == "gauge" && metric.Value != nil {

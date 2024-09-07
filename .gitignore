@@ -31,3 +31,4 @@ agentlog.log
 metrics-db.json
 tempfile
 tempfile.json
+.tools/statictest

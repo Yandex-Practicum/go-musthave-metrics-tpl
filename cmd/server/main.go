@@ -29,6 +29,12 @@ func main() {
 
 	stor := storage.New()
 
+	Db, err := storage.DBConnect(config)
+	if err != nil {
+		logger.Error("Failed to connect to database: %v", zap.Error(err))
+	}
+	stor.Db = Db
+
 	service := service.New(stor)
 
 	router := handler.New(service, middle)
@@ -59,6 +65,9 @@ func main() {
 
 	stor.SaveMemStorageToFile()
 	stor.CloseFile()
+
+	// stor.SavetoDB()
+	// stor.CloseDB()
 
 	// Логирование завершения работы сервера
 	logger.Info("Shutting down server...")

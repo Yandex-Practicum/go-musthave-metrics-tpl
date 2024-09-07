@@ -21,6 +21,7 @@ type Storager interface {
 	UpdateMetric(metric models.Metrics) error
 	GetValue(metric models.Metrics) (*models.Metrics, error)
 	MetrixStatistic() (map[string]models.Metrics, error)
+	Ping() error
 }
 
 // New создание нового сервиса
@@ -28,6 +29,11 @@ func New(s Storager) *Service {
 	return &Service{
 		Storage: s,
 	}
+}
+
+// PingDb проверка подключения к базе данных
+func (s *Service) PingDb() error {
+	return s.Storage.Ping()
 }
 
 // GetValueServJSON получение значения метрики в формате JSON

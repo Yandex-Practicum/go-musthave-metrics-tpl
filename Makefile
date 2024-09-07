@@ -1,9 +1,7 @@
-all: iter1 iter2 iter3
+all: iter1 iter2 iter3 iter4 iter5 iter6 iter7 iter8 iter9
 
-vet:
-	go vet ./...
-
-.PHONY: vet
+vet: 
+	go vet -vettool=./.tools/statictest ./...
 
 test:
 	@echo "running tests"
@@ -17,7 +15,7 @@ iter1:
 	go build -o server && \
 	cd - && \
 	chmod +x ./metricstest && \
-	./metricstest -test.v -test.run=^TestIteration1$ -binary-path=cmd/server/server
+	./metricstest -test.v -test.run=^TestIteration1$$ -binary-path=cmd/server/server
 
 iter2:
 	@echo "iter2 starting tests for second iteration"
@@ -28,9 +26,9 @@ iter2:
 	go build -o agent && \
 	cd - && \
 	chmod +x ./metricstest && \
-	./metricstest -test.v -test.run=^TestIteration2[AB]*$ \
-            -source-path=. \
-            -agent-binary-path=cmd/agent/agent
+	./metricstest -test.v -test.run=^TestIteration2[AB]*$$ \
+		-source-path=. \
+		-agent-binary-path=cmd/agent/agent
 
 iter3:
 	@echo "iter3 starting tests for third iteration"
@@ -41,10 +39,10 @@ iter3:
 	go build -o agent && \
 	cd - && \
 	chmod +x ./metricstest && \
-	./metricstest -test.v -test.run=^TestIteration3[AB]*$ \
-            -source-path=. \
-            -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server
+	./metricstest -test.v -test.run=^TestIteration3[AB]*$$ \
+		-source-path=. \
+		-agent-binary-path=cmd/agent/agent \
+		-binary-path=cmd/server/server
 
 iter4:
 	@echo "iter4 starting tests for fourth iteration"
@@ -139,9 +137,28 @@ iter9:
 	go build -o agent && \
 	cd - && \
 	chmod +x ./metricstest && \
-	./metricstest -test.v -test.run=^TestIteration9$ \
+	./metricstest -test.v -test.run=^TestIteration9$$ \
 		-agent-binary-path=cmd/agent/agent \
 		-binary-path=cmd/server/server \
 		-file-storage-path=$$TEMP_FILE \
+		-server-port=$$SERVER_PORT \
+		-source-path=.
+
+iter10:
+	@echo "iter10 starting tests for ten iteration"
+	@SERVER_PORT=8080 \
+	ADDRESS="localhost:8080"; \
+	TEMP_FILE="tempfile.json"; \
+	cd ./cmd/server/ && \
+	go build -o server && \
+	cd - && \
+	cd ./cmd/agent/ && \
+	go build -o agent && \
+	cd - && \
+	chmod +x ./metricstest && \
+    ./metricstest -test.v -test.run=^TestIteration10[AB]$$ \
+		-agent-binary-path=cmd/agent/agent \
+		-binary-path=cmd/server/server \
+		-database-dsn='postgres://postgres:mypassword@localhost:5432/metrix?sslmode=disable' \
 		-server-port=$$SERVER_PORT \
 		-source-path=.
