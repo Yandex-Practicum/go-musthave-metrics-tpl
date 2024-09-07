@@ -32,11 +32,14 @@ func GetFlags() {
 	// Read the environment variables
 	viper.AutomaticEnv()
 
+	// postgres://postgres:mypassword@localhost:5432/metrix?sslmode=disable
+	// metrics-db.json
+
 	// Define the flags and bind them to viper
-    pflag.StringP("DatabaseDSN", "d", "postgres://postgres:mypassword@localhost:5432/metrix?sslmode=disable", "Database DSN")
+    pflag.StringP("DatabaseDSN", "d", "", "Database DSN")
 	pflag.StringP("ServerAddress", "a", "localhost:8080", "HTTP server network address")
 	pflag.IntP("StoreInterval", "i", 300, "Interval in seconds to store the current server readings to disk")
-	pflag.StringP("FileStoragePath", "f", "metrics-db.json", "Full filename where current values are saved")
+	pflag.StringP("FileStoragePath", "f", "", "Full filename where current values are saved")
 	pflag.BoolP("Restore", "r", true, "Whether to load previously saved values from the specified file at server startup")
 	pflag.StringP("ServerLoggerFile", "l", "serverlog.log", "Full filename where server logs are saved")
 

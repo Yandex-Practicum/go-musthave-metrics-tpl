@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"html/template"
@@ -75,7 +76,7 @@ func (s *Service) UpdateServJSON(metric *models.Metrics) error {
 			ID:    metric.ID,
 		})
 		if err != nil {
-			if errors.Is(err, models.ErrMetricNotFound) {
+			if errors.Is(err, models.ErrMetricNotFound) || errors.Is(err, sql.ErrNoRows) {
 				counterVal = "0"
 			} else {
 				return err
@@ -94,11 +95,15 @@ func (s *Service) UpdateServJSON(metric *models.Metrics) error {
 
 		// Добавление старого значения к новому
 		totalValue := *metric.Delta + int64(counterInt)
-		s.Storage.UpdateMetric(models.Metrics{
+		err = s.Storage.UpdateMetric(models.Metrics{
 			MType: metric.MType,
 			ID:    metric.ID,
 			Delta: &totalValue,
 		})
+		if err != nil {
+			log.Printf("failed to update metric: %v", err)
+			return err
+		}
 	default:
 		log.Printf("unknown metric type: %s", metric.MType)
 		return models.NewHTTPError(http.StatusBadRequest, "unknown metric type")

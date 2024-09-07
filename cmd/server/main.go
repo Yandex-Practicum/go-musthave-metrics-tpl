@@ -27,21 +27,13 @@ func main() {
 
 	middle := middleware.New(logger)
 
-	stor := storage.New()
-
-	DB, err := storage.DBConnect(config)
-	if err != nil {
-		logger.Error("Failed to connect to database: %v", zap.Error(err))
-	}
-	stor.DB = DB
+		
+	stor := storage.Init(config, logger)
 
 	service := service.New(stor)
 
 	router := handler.New(service, middle)
 	router.RegisterRoutes()
-
-	// We can add IF statment later if we have to.
-	storage.StartFileStorageLogic(config, stor, logger)
 
 	// Создание канала для получения сигналов завершения работы
 	stop := make(chan os.Signal, 1)
@@ -63,11 +55,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	stor.SaveMemStorageToFile()
-	stor.CloseFile()
-
-	// stor.SavetoDB()
-	// stor.CloseDB()
+	if err := stor.Stop(); err != nil {
+		logger.Error("Failed to stop storage: %v", zap.Error(err))
+	}
 
 	// Логирование завершения работы сервера
 	logger.Info("Shutting down server...")

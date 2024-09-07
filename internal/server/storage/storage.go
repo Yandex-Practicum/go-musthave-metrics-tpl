@@ -1,200 +1,45 @@
 package storage
 
 import (
-	"database/sql"
-	"encoding/json"
-	"fmt"
 	"log"
-	"os"
-	"sync"
-	"time"
 
-	// driver to connect to PostgreSQL
-	_ "github.com/lib/pq"
 	"github.com/vova4o/yandexadv/internal/models"
 	"github.com/vova4o/yandexadv/internal/server/flags"
 	"github.com/vova4o/yandexadv/package/logger"
 	"go.uber.org/zap"
 )
 
-// Storage структура для хранилища
-type Storage struct {
-	FileStorage *os.File
-	Encoder     *json.Encoder
-	MemStorage  map[string]models.Metrics
-	DB          *sql.DB
-	mu          sync.Mutex
+// Storage интерфейс для хранилища
+type Storage interface {
+	UpdateMetric(metric models.Metrics) error
+	GetValue(metric models.Metrics) (*models.Metrics, error)
+	MetrixStatistic() (map[string]models.Metrics, error)
+	Ping() error
+	Stop() error
 }
 
-// New создание нового хранилища
-func New() *Storage {
-	return &Storage{
-		MemStorage: make(map[string]models.Metrics),
-	}
-}
-
-// DBConnect подключение к базе данных
-func DBConnect(config *flags.Config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", config.DBDSN)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
-	}
-
-	err = db.Ping()
-	if err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	return db, nil
-}
-
-// Ping проверка подключения к базе данных
-func (s *Storage) Ping() error {
-	if s.DB == nil {
-		return fmt.Errorf("database is not connected")
-	}
-	return s.DB.Ping()
-}
-
-// StartFileStorageLogic запуск логики хранения данных в файле
-func StartFileStorageLogic(config *flags.Config, s *Storage, logger *logger.Logger) {
-	if config.FileStoragePath != "" {
-		err := s.OpenFile(config.FileStoragePath)
+// Init инициализация хранилища в зависимости от конфигурации
+func Init(config *flags.Config, logger *logger.Logger) Storage {
+	if config.FileStoragePath == "" && config.DBDSN == "" {
+		logger.Error("No storage selected using default: MemoryStorage")
+		return NewMemStorage()
+	} else if config.DBDSN != "" {
+		logger.Info("Selected storage: DB")
+		DB, err := DBConnect(config)
 		if err != nil {
-			logger.Error("Failed to open file: %v", zap.Error(err))
+			logger.Error("Failed to connect to database: %v", zap.Error(err))
+			log.Fatalf("Failed to connect to database: %v", err)
 		}
+		err = DB.CreateTables()
+		if err != nil {
+			logger.Error("Failed to create tables: %v", zap.Error(err))
+			log.Fatalf("Failed to create tables: %v", err)
+		}
+		return DB
 	} else {
-		logger.Info("File storage is not specified")
-		return
+		logger.Info("Selected storage: File")
+		stor := NewFileStorage()
+		StartFileStorageLogic(config, stor, logger)
+		return stor
 	}
-
-	if config.Restore {
-		err := s.LoadMemStorageFromFile()
-		if err != nil {
-			logger.Error("Failed to restore data from file: %v", zap.Error(err))
-		}
-	}
-
-	go func() {
-		for {
-			interval := time.Duration(config.StoreInterval) * time.Second
-			// if interval == 0 {
-			// 	interval = 100 * time.Microsecond // Установите разумное значение по умолчанию
-			// }
-			time.Sleep(interval)
-			s.SaveMemStorageToFile()
-		}
-	}()
-}
-
-// OpenFile открытие файла для хранения данных
-func (s *Storage) OpenFile(filename string) error {
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-
-	encoder := json.NewEncoder(file)
-
-	s.FileStorage = file
-	s.Encoder = encoder
-
-	return nil
-}
-
-// CloseFile закрытие файла
-func (s *Storage) CloseFile() error {
-	return s.FileStorage.Close()
-}
-
-// SaveMemStorageToFile сохранение данных из памяти в файл
-func (s *Storage) SaveMemStorageToFile() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Очистка файла
-	if err := s.FileStorage.Truncate(0); err != nil {
-		log.Fatal(err)
-		return fmt.Errorf("failed to truncate file: %w", err)
-	}
-
-	// Установка указателя файла в начало
-	if _, err := s.FileStorage.Seek(0, 0); err != nil {
-		log.Fatal(err)
-		return fmt.Errorf("failed to seek file: %w", err)
-	}
-
-	if err := s.Encoder.Encode(s.MemStorage); err != nil {
-		log.Fatal(err)
-		return fmt.Errorf("failed to encode metrics: %w", err)
-	}
-
-	return nil
-}
-
-// LoadMemStorageFromFile загрузка данных из файла в память
-func (s *Storage) LoadMemStorageFromFile() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Установка указателя файла в начало
-	if _, err := s.FileStorage.Seek(0, 0); err != nil {
-		return fmt.Errorf("failed to seek file: %w", err)
-	}
-
-	// Создание декодера для чтения данных из файла
-	decoder := json.NewDecoder(s.FileStorage)
-
-	// Чтение данных из файла
-	var metrics map[string]models.Metrics
-	for {
-		if err := decoder.Decode(&metrics); err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			return fmt.Errorf("failed to decode metric: %w", err)
-		}
-
-		s.MemStorage = metrics
-	}
-
-	return nil
-}
-
-// MetrixStatistic получение статистики метрик
-func (s *Storage) MetrixStatistic() (map[string]models.Metrics, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var metrics = make(map[string]models.Metrics)
-
-	for metricType, metricValues := range s.MemStorage {
-		metrics[metricType] = metricValues
-	}
-
-	return metrics, nil
-}
-
-// UpdateMetric обновление метрики
-func (s *Storage) UpdateMetric(metric models.Metrics) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.MemStorage[metric.ID] = metric
-
-	return nil
-}
-
-// GetValue получение значения метрики по ID метрики
-// возвращает значение метрики и ошибку
-// возвращает значение не указателем, а значением
-func (s *Storage) GetValue(metric models.Metrics) (*models.Metrics, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if val, ok := s.MemStorage[metric.ID]; ok {
-		return &val, nil
-	}
-
-	return nil, models.ErrMetricNotFound
 }
