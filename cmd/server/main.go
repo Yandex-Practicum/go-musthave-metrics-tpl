@@ -29,11 +29,11 @@ func main() {
 
 	stor := storage.New()
 
-	Db, err := storage.DBConnect(config)
+	DB, err := storage.DBConnect(config)
 	if err != nil {
 		logger.Error("Failed to connect to database: %v", zap.Error(err))
 	}
-	stor.DB = Db
+	stor.DB = DB
 
 	service := service.New(stor)
 
