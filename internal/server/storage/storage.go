@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	// driver to connect to PostgreSQL
 	_ "github.com/lib/pq"
 	"github.com/vova4o/yandexadv/internal/models"
 	"github.com/vova4o/yandexadv/internal/server/flags"
@@ -21,7 +22,7 @@ type Storage struct {
 	FileStorage *os.File
 	Encoder     *json.Encoder
 	MemStorage  map[string]models.Metrics
-	Db          *sql.DB
+	DB          *sql.DB
 	mu          sync.Mutex
 }
 
@@ -34,7 +35,7 @@ func New() *Storage {
 
 // DBConnect подключение к базе данных
 func DBConnect(config *flags.Config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", config.DbDSN)
+	db, err := sql.Open("postgres", config.DBDSN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -49,10 +50,10 @@ func DBConnect(config *flags.Config) (*sql.DB, error) {
 
 // Ping проверка подключения к базе данных
 func (s *Storage) Ping() error {
-	if s.Db == nil {
+	if s.DB == nil {
 		return fmt.Errorf("database is not connected")
 	}
-	return s.Db.Ping()
+	return s.DB.Ping()
 }
 
 // StartFileStorageLogic запуск логики хранения данных в файле

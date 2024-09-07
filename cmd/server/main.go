@@ -33,7 +33,7 @@ func main() {
 	if err != nil {
 		logger.Error("Failed to connect to database: %v", zap.Error(err))
 	}
-	stor.Db = Db
+	stor.DB = Db
 
 	service := service.New(stor)
 

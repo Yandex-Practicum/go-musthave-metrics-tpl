@@ -31,8 +31,8 @@ func New(s Storager) *Service {
 	}
 }
 
-// PingDb проверка подключения к базе данных
-func (s *Service) PingDb() error {
+// PingDB проверка подключения к базе данных
+func (s *Service) PingDB() error {
 	return s.Storage.Ping()
 }
 

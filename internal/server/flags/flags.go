@@ -15,7 +15,7 @@ type Config struct {
 	FileStoragePath string
 	Restore         bool
 	ServerLogFile   string
-	DbDSN		   string
+	DBDSN		   string
 }
 
 // GetFlags устанавливает и получает флаги
@@ -80,12 +80,12 @@ func NewConfig() *Config {
 		FileStoragePath: FileStoragePath(),
 		Restore:         Restore(),
 		ServerLogFile:   ServerLogFile(),
-		DbDSN:		   DbDSN(),
+		DBDSN:		     DBDSN(),
 	}
 }
 
-// DbDSN возвращает строку подключения к базе данных
-func DbDSN() string {
+// DBDSN возвращает строку подключения к базе данных
+func DBDSN() string {
 	return viper.GetString("DatabaseDSN")
 }
 
