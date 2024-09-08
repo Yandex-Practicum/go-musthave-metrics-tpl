@@ -35,6 +35,7 @@ type Servicer interface {
 	GetValueServ(metric models.Metrics) (string, error)
 	GetValueServJSON(metric models.Metrics) (*models.Metrics, error)
 	MetrixStatistic() (*template.Template, map[string]models.Metrics, error)
+	UpdateBatchMetricsServ(metrics []models.Metrics) error
 	PingDB() error
 }
 
@@ -59,6 +60,7 @@ func (s *Router) RegisterRoutes() {
 	s.mux.Use(s.Middl.GzipMiddleware())
 
 	s.mux.POST("/update/:type/:name/:value", s.UpdateMetricHandler)
+	s.mux.POST("/updates/", s.UpdateBatchMetricsHandler)
 	s.mux.GET("/value/:type/:name", s.GetValueHandler)
 	s.mux.GET("/", s.StatisticPage)
 	s.mux.POST("/update/", s.UpdateMetricHandlerJSON)
@@ -68,13 +70,11 @@ func (s *Router) RegisterRoutes() {
 
 // StartServer запуск сервера
 func (s *Router) StartServer(addr string) error {
-	s.mu.Lock()
 	// Создание http.Server с использованием Gin
 	s.server = &http.Server{
 		Addr:    addr,
 		Handler: s.mux,
 	}
-	s.mu.Unlock()
 
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		// Логирование ошибки, если сервер не смог запуститься

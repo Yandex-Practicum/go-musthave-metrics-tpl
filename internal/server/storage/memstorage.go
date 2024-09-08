@@ -19,6 +19,18 @@ func NewMemStorage() *MemStorage {
     }
 }
 
+// UpdateBatch обновление метрик по пакетно
+func (s *MemStorage) UpdateBatch(metrics []models.Metrics) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, metric := range metrics {
+		s.MemStorage[metric.ID] = metric
+	}
+
+	return nil
+}
+
 // MetrixStatistic получение статистики метрик
 func (s *MemStorage) MetrixStatistic() (map[string]models.Metrics, error) {
     s.mu.Lock()

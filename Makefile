@@ -181,3 +181,22 @@ iter11:
 		-database-dsn='postgres://postgres:mypassword@localhost:5432/metrix?sslmode=disable' \
 		-server-port=$$SERVER_PORT \
 		-source-path=.
+
+iter12:
+	@echo "iter12 starting tests for twelve iteration"
+	@SERVER_PORT=8080 \
+	ADDRESS="localhost:8080"; \
+	TEMP_FILE="tempfile.json"; \
+	cd ./cmd/server/ && \
+	go build -o server && \
+	cd - && \
+	cd ./cmd/agent/ && \
+	go build -o agent && \
+	cd - && \
+	chmod +x ./metricstest && \
+	./metricstest -test.v -test.run=^TestIteration12$$ \
+		-agent-binary-path=cmd/agent/agent \
+		-binary-path=cmd/server/server \
+		-database-dsn='postgres://postgres:mypassword@localhost:5432/metrix?sslmode=disable' \
+		-server-port=$$SERVER_PORT \
+		-source-path=.

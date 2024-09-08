@@ -41,6 +41,46 @@ func serverSupportsGzip(address string) bool {
 	return resp.Header().Get("Content-Encoding") == "gzip"
 }
 
+// SendMetricsBatch отправляет метрики на сервер пакетом
+func SendMetricsBatch(address string, metricsData []metrics.Metrics) {
+	client := resty.New()
+	useGzip := serverSupportsGzip(address)
+
+	url := fmt.Sprintf("http://%s/updates", address)
+
+	// Сериализация метрик в JSON
+	jsonData, err := json.Marshal(metricsData)
+	if err != nil {
+		log.Printf("Failed to marshal metrics: %v\n", err)
+		return
+	}
+
+	request := client.R().SetHeader("Content-Type", "application/json")
+
+	if useGzip {
+		request.SetHeader("Content-Encoding", "gzip")
+		compressedData, err := compressData(jsonData)
+		if err != nil {
+			log.Printf("Failed to compress data for metrics: %v\n", err)
+			return
+		}
+		request.SetBody(compressedData)
+	} else {
+		request.SetBody(jsonData)
+	}
+
+	resp, err := request.Post(url)
+
+	if err != nil {
+		log.Printf("Failed to send metrics: %v\n", err)
+		return
+	}
+
+	if resp.StatusCode() != 200 {
+		log.Printf("Failed to send metrics: status code %d\n", resp.StatusCode())
+	}
+}
+
 // SendMetrics отправляет метрики на сервер
 func SendMetrics(address string, metricsData []metrics.Metrics) {
 	client := resty.New()

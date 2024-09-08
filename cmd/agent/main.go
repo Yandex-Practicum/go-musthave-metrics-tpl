@@ -44,8 +44,9 @@ func main() {
 
 		case <-tickerReport.C:
 			metricsMutex.Lock()
-			sender.SendMetrics(config.ServerAddress, metricsData)
-			sender.SendMetricsJSON(config.ServerAddress, metricsData)
+			// sender.SendMetrics(config.ServerAddress, metricsData)
+			// sender.SendMetricsJSON(config.ServerAddress, metricsData)
+			sender.SendMetricsBatch(config.ServerAddress, metricsData)
 			metricsMutex.Unlock()
 		}
 	}

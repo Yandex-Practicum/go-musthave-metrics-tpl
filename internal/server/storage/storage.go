@@ -11,6 +11,7 @@ import (
 
 // Storage интерфейс для хранилища
 type Storage interface {
+	UpdateBatch(metrics []models.Metrics) error
 	UpdateMetric(metric models.Metrics) error
 	GetValue(metric models.Metrics) (*models.Metrics, error)
 	MetrixStatistic() (map[string]models.Metrics, error)
@@ -25,7 +26,7 @@ func Init(config *flags.Config, logger *logger.Logger) Storage {
 		return NewMemStorage()
 	} else if config.DBDSN != "" {
 		logger.Info("Selected storage: DB")
-		DB, err := DBConnect(config)
+		DB, err := DBConnect(config, logger)
 		if err != nil {
 			logger.Error("Failed to connect to database: %v", zap.Error(err))
 			log.Fatalf("Failed to connect to database: %v", err)

@@ -30,7 +30,7 @@ func main() {
 		
 	stor := storage.Init(config, logger)
 
-	service := service.New(stor)
+	service := service.New(stor, logger)
 
 	router := handler.New(service, middle)
 	router.RegisterRoutes()

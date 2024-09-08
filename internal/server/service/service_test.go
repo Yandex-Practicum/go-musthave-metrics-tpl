@@ -15,6 +15,11 @@ type MockStorager struct {
 	mock.Mock
 }
 
+func (m *MockStorager) UpdateBatch(metrics []models.Metrics) error {
+	args := m.Called(metrics)
+	return args.Error(0)
+}
+
 func (m *MockStorager) UpdateMetric(metric models.Metrics) error {
 	args := m.Called(metric)
 	return args.Error(0)

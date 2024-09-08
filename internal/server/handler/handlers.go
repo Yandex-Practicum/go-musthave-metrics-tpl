@@ -10,6 +10,26 @@ import (
 	"github.com/vova4o/yandexadv/internal/models"
 )
 
+// UpdateBatchMetricsHandler обработчик для обновления метрик в формате JSON by batch
+func (s *Router) UpdateBatchMetricsHandler(c *gin.Context) {
+	var metrics []models.Metrics
+	if err := c.BindJSON(&metrics); err != nil {
+		// log.Printf("Failed to bind JSON: %v", err)
+		c.String(http.StatusBadRequest, "bad request")
+		return
+	}
+
+	log.Printf("Received POST JSON metrics for update: %v", metrics)
+
+	if err := s.Service.UpdateBatchMetricsServ(metrics); err != nil {
+		// log.Printf("Failed to update metrics: %v", err)
+		c.String(http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 // PingHandler обработчик для проверки подключения к базе данных
 func (s *Router) PingHandler(c *gin.Context) {
 	err := s.Service.PingDB()

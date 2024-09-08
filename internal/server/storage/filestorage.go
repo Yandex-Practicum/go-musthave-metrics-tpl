@@ -177,3 +177,15 @@ func (s *FileAndMemStorage) MetrixStatistic() (map[string]models.Metrics, error)
 
 	return metrics, nil
 }
+
+// UpdateBatch обновление метрик по пакетно
+func (s *FileAndMemStorage) UpdateBatch(metrics []models.Metrics) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, metric := range metrics {
+		s.MS.MemStorage[metric.ID] = metric
+	}
+
+	return nil
+}

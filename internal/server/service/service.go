@@ -10,15 +10,19 @@ import (
 	"strconv"
 
 	"github.com/vova4o/yandexadv/internal/models"
+	"github.com/vova4o/yandexadv/package/logger"
+	"go.uber.org/zap"
 )
 
 // Service структура для бизнес-логики
 type Service struct {
 	Storage Storager
+	logger *logger.Logger
 }
 
 // Storager интерфейс для хранилища
 type Storager interface {
+	UpdateBatch(metrics []models.Metrics) error
 	UpdateMetric(metric models.Metrics) error
 	GetValue(metric models.Metrics) (*models.Metrics, error)
 	MetrixStatistic() (map[string]models.Metrics, error)
@@ -26,10 +30,47 @@ type Storager interface {
 }
 
 // New создание нового сервиса
-func New(s Storager) *Service {
+func New(s Storager, logger *logger.Logger) *Service {
 	return &Service{
 		Storage: s,
+		logger: logger,
 	}
+}
+
+// UpdateBatchMetricsServ обновление метрик в формате JSON by batch
+func (s *Service) UpdateBatchMetricsServ(metrics []models.Metrics) error {
+	if len(metrics) == 0 {
+		log.Printf("Empty metrics")
+		return models.NewHTTPError(http.StatusBadRequest, "Empty metrics")
+	}
+
+	// for _, metric := range metrics {
+	// 	if err := validateMetricJSON(&metric); err != nil {
+	// 		return err
+	// 	}
+	// }
+
+	for _, metric := range metrics {
+		s.logger.Info("Update metric", zap.String("metric", metric.ID))
+		if err := validateMetricJSON(&metric); err != nil {
+			s.logger.Error("Failed to validate metric", zap.Error(err))
+			return err
+		}
+		err := s.UpdateServJSON(&metric)
+		if err != nil {
+			log.Printf("failed to update metric: %v", err)
+			s.logger.Error("Failed to update metric", zap.Error(err))
+			return err
+		}
+	}
+
+	// err := s.Storage.UpdateBatch(metrics)
+	// if err != nil {
+	// 	log.Printf("failed to update metrics: %v", err)
+	// 	return err
+	// }
+
+	return nil
 }
 
 // PingDB проверка подключения к базе данных
@@ -48,6 +89,9 @@ func (s *Service) GetValueServJSON(metric models.Metrics) (*models.Metrics, erro
 	if err != nil {
 		log.Printf("failed to get value: %v", err)
 		return nil, err
+	}
+	if value.Delta == nil && value.Value == nil {
+		return nil, models.ErrMetricNotFound
 	}
 
 	return value, nil
