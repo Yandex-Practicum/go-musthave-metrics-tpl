@@ -6,13 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
 )
 
-// compressData сжимает данные с использованием gzip
-func compressData(data []byte) ([]byte, error) {
+const maxRetries = 3
+const retryDelay = 1 * time.Second
+
+// CompressData сжимает данные с использованием gzip
+func CompressData(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	writer := gzip.NewWriter(&buf)
 	_, err := writer.Write(data)
@@ -26,8 +30,8 @@ func compressData(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// serverSupportsGzip проверяет, поддерживает ли сервер gzip-сжатие
-func serverSupportsGzip(address string) bool {
+// ServerSupportsGzip проверяет, поддерживает ли сервер gzip-сжатие
+func ServerSupportsGzip(address string) bool {
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("Accept-Encoding", "gzip").
@@ -44,7 +48,7 @@ func serverSupportsGzip(address string) bool {
 // SendMetricsBatch отправляет метрики на сервер пакетом
 func SendMetricsBatch(address string, metricsData []metrics.Metrics) {
 	client := resty.New()
-	useGzip := serverSupportsGzip(address)
+	useGzip := ServerSupportsGzip(address)
 
 	url := fmt.Sprintf("http://%s/updates", address)
 
@@ -59,7 +63,7 @@ func SendMetricsBatch(address string, metricsData []metrics.Metrics) {
 
 	if useGzip {
 		request.SetHeader("Content-Encoding", "gzip")
-		compressedData, err := compressData(jsonData)
+		compressedData, err := CompressData(jsonData)
 		if err != nil {
 			log.Printf("Failed to compress data for metrics: %v\n", err)
 			return
@@ -69,22 +73,15 @@ func SendMetricsBatch(address string, metricsData []metrics.Metrics) {
 		request.SetBody(jsonData)
 	}
 
-	resp, err := request.Post(url)
-
-	if err != nil {
+	if err := sendWithRetry(request, url); err != nil {
 		log.Printf("Failed to send metrics: %v\n", err)
-		return
-	}
-
-	if resp.StatusCode() != 200 {
-		log.Printf("Failed to send metrics: status code %d\n", resp.StatusCode())
 	}
 }
 
 // SendMetrics отправляет метрики на сервер
 func SendMetrics(address string, metricsData []metrics.Metrics) {
 	client := resty.New()
-	useGzip := serverSupportsGzip(address)
+	useGzip := ServerSupportsGzip(address)
 
 	for _, metric := range metricsData {
 		var url string
@@ -98,7 +95,7 @@ func SendMetrics(address string, metricsData []metrics.Metrics) {
 
 		if useGzip {
 			request.SetHeader("Content-Encoding", "gzip")
-			compressedData, err := compressData([]byte(url))
+			compressedData, err := CompressData([]byte(url))
 			if err != nil {
 				log.Printf("Failed to compress data for metric %s: %v\n", metric.ID, err)
 				continue
@@ -108,15 +105,8 @@ func SendMetrics(address string, metricsData []metrics.Metrics) {
 			request.SetBody(url)
 		}
 
-		resp, err := request.Post(url)
-
-		if err != nil {
+		if err := sendWithRetry(request, url); err != nil {
 			log.Printf("Failed to send metric %s: %v\n", metric.ID, err)
-			continue
-		}
-
-		if resp.StatusCode() != 200 {
-			log.Printf("Failed to send metric %s: status code %d\n", metric.ID, resp.StatusCode())
 		}
 	}
 }
@@ -124,7 +114,7 @@ func SendMetrics(address string, metricsData []metrics.Metrics) {
 // SendMetricsJSON отправляет метрики на сервер в формате JSON
 func SendMetricsJSON(address string, metricsData []metrics.Metrics) {
 	client := resty.New()
-	useGzip := serverSupportsGzip(address)
+	useGzip := ServerSupportsGzip(address)
 
 	for _, metric := range metricsData {
 		url := fmt.Sprintf("http://%s/update/", address)
@@ -140,7 +130,7 @@ func SendMetricsJSON(address string, metricsData []metrics.Metrics) {
 
 		if useGzip {
 			request.SetHeader("Content-Encoding", "gzip")
-			compressedData, err := compressData(jsonData)
+			compressedData, err := CompressData(jsonData)
 			if err != nil {
 				log.Printf("Failed to compress data for metric %s: %v\n", metric.ID, err)
 				continue
@@ -150,15 +140,27 @@ func SendMetricsJSON(address string, metricsData []metrics.Metrics) {
 			request.SetBody(jsonData)
 		}
 
-		resp, err := request.Post(url)
-
-		if err != nil {
+		if err := sendWithRetry(request, url); err != nil {
 			log.Printf("Failed to send metric %s: %v\n", metric.ID, err)
-			continue
-		}
-
-		if resp.StatusCode() != 200 {
-			log.Printf("Failed to send metric %s: status code %d\n", metric.ID, resp.StatusCode())
 		}
 	}
+}
+
+// sendWithRetry отправляет запрос с повторными попытками в случае ошибки
+func sendWithRetry(request *resty.Request, url string) error {
+    delay := retryDelay
+	for i := 0; i < maxRetries; i++ {
+        resp, err := request.Post(url)
+        if err != nil {
+            log.Printf("Failed to send request: %v\n", err)
+        } else if resp.StatusCode() == 200 {
+            return nil
+        } else {
+            log.Printf("Failed to send request: status code %d\n", resp.StatusCode())
+        }
+
+        time.Sleep(delay)
+        delay += 2 * time.Second
+    }
+    return fmt.Errorf("failed to send request after %d attempts", maxRetries)
 }

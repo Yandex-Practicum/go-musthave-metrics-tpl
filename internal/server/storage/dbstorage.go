@@ -10,22 +10,36 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/vova4o/yandexadv/internal/models"
 	"github.com/vova4o/yandexadv/internal/server/flags"
-	"github.com/vova4o/yandexadv/package/logger"
 	"go.uber.org/zap"
 )
 
 // DBStorage структура для хранилища
 type DBStorage struct {
 	DB *pgxpool.Pool
-	logger *logger.Logger
+	logger Loggerer
 }
 
+const maxRetries = 3
+const retryDelay = 1 * time.Second
+
 // DBConnect подключение к базе данных
-func DBConnect(config *flags.Config, logger *logger.Logger) (*DBStorage, error) {
-	db, err := pgxpool.Connect(context.Background(), config.DBDSN)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
+func DBConnect(config *flags.Config, logger Loggerer) (*DBStorage, error) {
+	var db *pgxpool.Pool
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+        db, err = pgxpool.Connect(context.Background(), config.DBDSN)
+        if err == nil {
+            break
+        }
+
+        logger.Error("Failed to connect to database", zap.Error(err))
+        time.Sleep(retryDelay)
+    }
+
+    if err != nil {
+        return nil, fmt.Errorf("failed to connect to database after %d attempts: %w", maxRetries, err)
+    }
 
 	return &DBStorage{
 		DB: db,
@@ -55,7 +69,7 @@ func (d *DBStorage) CreateTables() error {
 	_, err := d.DB.Exec(context.Background(), `CREATE TABLE IF NOT EXISTS metrics (
 		id SERIAL PRIMARY KEY,
 		type TEXT NOT NULL,
-		name TEXT NOT NULL,
+		name TEXT NOT NULL UNIQUE,
 		value DOUBLE PRECISION,
 		delta BIGINT,
 		timestamp TIMESTAMP NOT NULL
@@ -70,13 +84,8 @@ func (d *DBStorage) CreateTables() error {
 // UpdateBatch обновление метрик
 func (d *DBStorage) UpdateBatch(metrics []models.Metrics) error {
 	d.logger.Info("UpdateBatch", zap.String("metrics", fmt.Sprintf("%v", metrics)))
-	tx, err := d.DB.Begin(context.Background())
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
-	defer tx.Rollback(context.Background())
 
-	copyCount, err := tx.CopyFrom(
+	copyCount, err := d.DB.CopyFrom(
 		context.Background(),
 		pgx.Identifier{"metrics"},
 		[]string{"name", "type", "value", "delta", "timestamp"},
@@ -97,34 +106,18 @@ func (d *DBStorage) UpdateBatch(metrics []models.Metrics) error {
 
 	log.Printf("Inserted %d rows", copyCount)
 
-	if err := tx.Commit(context.Background()); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
-
-// // UpdateMetric добавление метрики
-// func (d *DBStorage) UpdateMetric(metric models.Metrics) error {
-// 	_, err := d.DB.Exec(context.Background(), `INSERT INTO metrics (type, name, value, delta, timestamp)
-// 	VALUES ($1, $2, $3, $4, $5)
-// 	 ON CONFLICT (name) DO UPDATE SET
-//         type = EXCLUDED.type,
-//         value = EXCLUDED.value,
-//         delta = EXCLUDED.delta,
-//         timestamp = EXCLUDED.timestamp`,
-// 		metric.MType, metric.ID, metric.Value, metric.Delta, time.Now())
-// 	if err != nil {
-// 		log.Println("Db failed to insert", err)
-// 		return fmt.Errorf("failed to insert metric: %w", err)
-// 	}
-// 	return nil
-// }
 
 // UpdateMetric добавление метрики
 func (d *DBStorage) UpdateMetric(metric models.Metrics) error {
 	_, err := d.DB.Exec(context.Background(), `INSERT INTO metrics (type, name, value, delta, timestamp)
-	VALUES ($1, $2, $3, $4, $5)`,
+	VALUES ($1, $2, $3, $4, $5)
+	 ON CONFLICT (name) DO UPDATE SET
+        type = EXCLUDED.type,
+        value = EXCLUDED.value,
+        delta = EXCLUDED.delta,
+        timestamp = EXCLUDED.timestamp`,
 		metric.MType, metric.ID, metric.Value, metric.Delta, time.Now())
 	if err != nil {
 		log.Println("Db failed to insert", err)
@@ -132,6 +125,18 @@ func (d *DBStorage) UpdateMetric(metric models.Metrics) error {
 	}
 	return nil
 }
+
+// // UpdateMetric добавление метрики
+// func (d *DBStorage) UpdateMetric(metric models.Metrics) error {
+// 	_, err := d.DB.Exec(context.Background(), `INSERT INTO metrics (type, name, value, delta, timestamp)
+// 	VALUES ($1, $2, $3, $4, $5)`,
+// 		metric.MType, metric.ID, metric.Value, metric.Delta, time.Now())
+// 	if err != nil {
+// 		log.Println("Db failed to insert", err)
+// 		return fmt.Errorf("failed to insert metric: %w", err)
+// 	}
+// 	return nil
+// }
 
 // MetrixStatistic получение статистики метрик
 func (d *DBStorage) MetrixStatistic() (map[string]models.Metrics, error) {

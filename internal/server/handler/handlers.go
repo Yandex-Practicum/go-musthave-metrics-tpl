@@ -19,7 +19,7 @@ func (s *Router) UpdateBatchMetricsHandler(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Received POST JSON metrics for update: %v", metrics)
+	// log.Printf("Received POST JSON metrics for update: %v", metrics)
 
 	if err := s.Service.UpdateBatchMetricsServ(metrics); err != nil {
 		// log.Printf("Failed to update metrics: %v", err)

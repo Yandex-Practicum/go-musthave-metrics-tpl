@@ -10,7 +10,6 @@ import (
 
 	"github.com/vova4o/yandexadv/internal/models"
 	"github.com/vova4o/yandexadv/internal/server/flags"
-	"github.com/vova4o/yandexadv/package/logger"
 	"go.uber.org/zap"
 )
 
@@ -86,7 +85,7 @@ func (s *FileAndMemStorage) LoadMemStorageFromFile() error {
 }
 
 // StartFileStorageLogic запуск логики хранения данных в файле
-func StartFileStorageLogic(config *flags.Config, s *FileAndMemStorage, logger *logger.Logger) {
+func StartFileStorageLogic(config *flags.Config, s *FileAndMemStorage, logger Loggerer) {
 	if config.FileStoragePath != "" {
 		err := s.OpenFile(config.FileStoragePath)
 		if err != nil {

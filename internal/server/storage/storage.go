@@ -5,12 +5,11 @@ import (
 
 	"github.com/vova4o/yandexadv/internal/models"
 	"github.com/vova4o/yandexadv/internal/server/flags"
-	"github.com/vova4o/yandexadv/package/logger"
 	"go.uber.org/zap"
 )
 
-// Storage интерфейс для хранилища
-type Storage interface {
+// Storager интерфейс для хранилища
+type Storager interface {
 	UpdateBatch(metrics []models.Metrics) error
 	UpdateMetric(metric models.Metrics) error
 	GetValue(metric models.Metrics) (*models.Metrics, error)
@@ -19,8 +18,14 @@ type Storage interface {
 	Stop() error
 }
 
+// Loggerer интерфейс для логгера
+type Loggerer interface {
+	Error(msg string, fields ...zap.Field)
+	Info (msg string, fields ...zap.Field)
+}
+
 // Init инициализация хранилища в зависимости от конфигурации
-func Init(config *flags.Config, logger *logger.Logger) Storage {
+func Init(config *flags.Config, logger Loggerer) Storager {
 	if config.FileStoragePath == "" && config.DBDSN == "" {
 		logger.Error("No storage selected using default: MemoryStorage")
 		return NewMemStorage()
