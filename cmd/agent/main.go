@@ -46,7 +46,7 @@ func main() {
 			metricsMutex.Lock()
 			// sender.SendMetrics(config.ServerAddress, metricsData)
 			// sender.SendMetricsJSON(config.ServerAddress, metricsData)
-			sender.SendMetricsBatch(config.ServerAddress, metricsData)
+			sender.SendMetricsBatch(config, metricsData)
 			metricsMutex.Unlock()
 		}
 	}

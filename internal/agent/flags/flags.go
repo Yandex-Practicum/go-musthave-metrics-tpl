@@ -15,6 +15,7 @@ type Config struct {
 	ReportInterval  time.Duration
 	PollInterval    time.Duration
 	AgenLogFileName string
+	Key 		   string
 }
 
 // GetFlags устанавливает и получает флаги
@@ -24,6 +25,7 @@ func GetFlags() {
 	pflag.IntP("ReportInterval", "r", 10, "Interval between fetching reportable metrics in seconds")
 	pflag.IntP("PollInterval", "p", 2, "Interval between polling metrics in seconds")
 	pflag.StringP("AgentLogName", "l", "agentlog.log", "Agent log file name")
+	pflag.StringP("Key", "k", "", "Key for the server")
 
 	// Parse the command-line flags
 	pflag.Parse()
@@ -40,6 +42,7 @@ func GetFlags() {
 	bindFlagToViper("ReportInterval")
 	bindFlagToViper("PollInterval")
 	bindFlagToViper("AgentLogName")
+	bindFlagToViper("Key")
 
 	// Set the environment variable names
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -47,6 +50,7 @@ func GetFlags() {
 	bindEnvToViper("ReportInterval", "REPORT_INTERVAL")
 	bindEnvToViper("PollInterval", "POLL_INTERVAL")
 	bindEnvToViper("AgentLogName", "AGENT_LOG_NAME")
+	bindEnvToViper("Key", "KEY")
 
 	// Read the environment variables
 	viper.AutomaticEnv()
@@ -72,7 +76,13 @@ func NewConfig() *Config {
 		ReportInterval:  GetReportInterval(),
 		PollInterval:    GetPollInterval(),
 		AgenLogFileName: GetAgentLogFileName(),
+		Key : GetKey(),
 	}
+}
+
+// GetKey возвращает ключ
+func GetKey() string {
+	return viper.GetString("Key")
 }
 
 // GetAgentLogFileName возвращает имя файла лога агента

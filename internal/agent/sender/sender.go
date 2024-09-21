@@ -3,12 +3,16 @@ package sender
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/vova4o/yandexadv/internal/agent/flags"
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
 )
 
@@ -45,8 +49,18 @@ func ServerSupportsGzip(address string) bool {
 	return resp.Header().Get("Content-Encoding") == "gzip"
 }
 
+// calculateHash вычисляет HMAC-SHA256 хэш из данных и ключа
+func calculateHash(data, key []byte) string {
+    h := hmac.New(sha256.New, key)
+    h.Write(data)
+    return hex.EncodeToString(h.Sum(nil))
+}
+
 // SendMetricsBatch отправляет метрики на сервер пакетом
-func SendMetricsBatch(address string, metricsData []metrics.Metrics) {
+func SendMetricsBatch(cfg *flags.Config, metricsData []metrics.Metrics) {
+	address := cfg.ServerAddress
+	key := cfg.Key
+
 	client := resty.New()
 	useGzip := ServerSupportsGzip(address)
 
@@ -59,7 +73,14 @@ func SendMetricsBatch(address string, metricsData []metrics.Metrics) {
 		return
 	}
 
+	var hash string
+	if key != "" {
+		hash = calculateHash(jsonData, []byte(key))
+	}
+
+
 	request := client.R().SetHeader("Content-Type", "application/json")
+	request.SetHeader("HashSHA256", hash)
 
 	if useGzip {
 		request.SetHeader("Content-Encoding", "gzip")
