@@ -43,6 +43,7 @@ func (s *Service) UpdateBatchMetricsServ(metrics []models.Metrics) error {
 		log.Printf("Empty metrics")
 		return models.NewHTTPError(http.StatusBadRequest, "Empty metrics")
 	}
+	// add this line just for github
 	s.logger.Info("Received POST JSON metrics for update", zap.Any("metrics", metrics))
 
 	for _, metric := range metrics {
