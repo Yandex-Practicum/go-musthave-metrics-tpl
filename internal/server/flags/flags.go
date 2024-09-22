@@ -69,9 +69,16 @@ func GetFlags() {
 }
 
 func bindFlagToViper(flagName string) {
-	if err := viper.BindPFlag(flagName, pflag.Lookup(flagName)); err != nil {
-		log.Println(err)
-	}
+    // Проверяем, установлена ли переменная окружения
+    if viper.IsSet(flagName) {
+        log.Printf("Skipping binding flag %s because environment variable is set", flagName)
+        return
+    }
+
+    // Связываем флаг с viper, если переменная окружения не установлена
+    if err := viper.BindPFlag(flagName, pflag.Lookup(flagName)); err != nil {
+        log.Println(err)
+    }
 }
 
 func bindEnvToViper(viperKey, envKey string) {

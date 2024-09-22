@@ -25,6 +25,7 @@ vendor/
 .vscode
 metricstest-darwin-arm64
 metricstest
+metricstest-old
 coverage.html
 serverlog.log
 agentlog.log
