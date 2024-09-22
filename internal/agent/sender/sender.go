@@ -59,7 +59,7 @@ func calculateHash(data, key []byte) string {
 // SendMetricsBatch отправляет метрики на сервер пакетом
 func SendMetricsBatch(cfg *flags.Config, metricsData []metrics.Metrics) {
 	address := cfg.ServerAddress
-	key := cfg.Key
+	key := cfg.SecretKey
 
 	client := resty.New()
 	useGzip := ServerSupportsGzip(address)

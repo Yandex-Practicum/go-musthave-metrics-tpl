@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vova4o/yandexadv/internal/agent/flags"
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
 	"github.com/vova4o/yandexadv/internal/agent/sender"
 )
@@ -42,6 +43,11 @@ func TestServerSupportsGzip(t *testing.T) {
     assert.True(t, supportsGzip)
 }
 
+var config = &flags.Config{
+    ServerAddress: "test_server",
+    SecretKey:    "test_key",
+}
+
 func TestSendMetricsBatch(t *testing.T) {
     handler := func(w http.ResponseWriter, r *http.Request) {
         var metricsData []metrics.Metrics
@@ -66,7 +72,7 @@ func TestSendMetricsBatch(t *testing.T) {
         {ID: "metric2", Value: float64Ptr(20)},
     }
 
-    sender.SendMetricsBatch(server.URL, metricsData)
+    sender.SendMetricsBatch(config, metricsData)
 }
 
 func TestSendMetrics(t *testing.T) {

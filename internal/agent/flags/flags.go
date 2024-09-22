@@ -15,7 +15,7 @@ type Config struct {
 	ReportInterval  time.Duration
 	PollInterval    time.Duration
 	AgenLogFileName string
-	Key 		   string
+	SecretKey 		   string
 }
 
 // GetFlags устанавливает и получает флаги
@@ -76,7 +76,7 @@ func NewConfig() *Config {
 		ReportInterval:  GetReportInterval(),
 		PollInterval:    GetPollInterval(),
 		AgenLogFileName: GetAgentLogFileName(),
-		Key : GetKey(),
+		SecretKey: GetKey(),
 	}
 }
 

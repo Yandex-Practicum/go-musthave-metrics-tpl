@@ -83,31 +83,69 @@ func (d *DBStorage) CreateTables() error {
 
 // UpdateBatch обновление метрик
 func (d *DBStorage) UpdateBatch(metrics []models.Metrics) error {
-	d.logger.Info("UpdateBatch", zap.String("metrics", fmt.Sprintf("%v", metrics)))
+    d.logger.Info("UpdateBatch", zap.String("metrics", fmt.Sprintf("%v", metrics)))
 
-	copyCount, err := d.DB.CopyFrom(
-		context.Background(),
-		pgx.Identifier{"metrics"},
-		[]string{"name", "type", "value", "delta", "timestamp"},
-		pgx.CopyFromSlice(len(metrics), func(i int) ([]interface{}, error) {
-			return []interface{}{
-				metrics[i].ID,
-				metrics[i].MType,
-				metrics[i].Value,
-				metrics[i].Delta,
-				time.Now(),
-			}, nil
-		}),
-	)
-	if err != nil {
-		log.Println("Db failed to insert", err)
-		return fmt.Errorf("failed to copy data: %w", err)
-	}
+    tx, err := d.DB.Begin(context.Background())
+    if err != nil {
+        log.Println("Db failed to begin transaction", err)
+        return fmt.Errorf("failed to begin transaction: %w", err)
+    }
+    defer tx.Rollback(context.Background())
 
-	log.Printf("Inserted %d rows", copyCount)
+    for _, metric := range metrics {
+        _, err := tx.Exec(context.Background(),
+            `INSERT INTO metrics (name, type, value, delta, timestamp)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (name) DO UPDATE
+            SET value = EXCLUDED.value,
+                delta = EXCLUDED.delta,
+                timestamp = EXCLUDED.timestamp`,
+            metric.ID, metric.MType, metric.Value, metric.Delta, time.Now(),
+        )
+        if err != nil {
+            log.Println("Db failed to insert or update", err)
+            return fmt.Errorf("failed to insert or update data: %w", err)
+        }
+    }
 
-	return nil
+    err = tx.Commit(context.Background())
+    if err != nil {
+        log.Println("Db failed to commit transaction", err)
+        return fmt.Errorf("failed to commit transaction: %w", err)
+    }
+
+    log.Printf("Inserted or updated %d rows", len(metrics))
+
+    return nil
 }
+
+// // UpdateBatch обновление метрик
+// func (d *DBStorage) UpdateBatch(metrics []models.Metrics) error {
+// 	d.logger.Info("UpdateBatch", zap.String("metrics", fmt.Sprintf("%v", metrics)))
+
+// 	copyCount, err := d.DB.CopyFrom(
+// 		context.Background(),
+// 		pgx.Identifier{"metrics"},
+// 		[]string{"name", "type", "value", "delta", "timestamp"},
+// 		pgx.CopyFromSlice(len(metrics), func(i int) ([]interface{}, error) {
+// 			return []interface{}{
+// 				metrics[i].ID,
+// 				metrics[i].MType,
+// 				metrics[i].Value,
+// 				metrics[i].Delta,
+// 				time.Now(),
+// 			}, nil
+// 		}),
+// 	)
+// 	if err != nil {
+// 		log.Println("Db failed to insert", err)
+// 		return fmt.Errorf("failed to copy data: %w", err)
+// 	}
+
+// 	log.Printf("Inserted %d rows", copyCount)
+
+// 	return nil
+// }
 
 // UpdateMetric добавление метрики
 func (d *DBStorage) UpdateMetric(metric models.Metrics) error {

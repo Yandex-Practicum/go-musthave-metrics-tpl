@@ -26,6 +26,7 @@ type Middlewarer interface {
 	GinZap() gin.HandlerFunc
 	GunzipMiddleware() gin.HandlerFunc
 	GzipMiddleware() gin.HandlerFunc
+	CheckHash() gin.HandlerFunc
 }
 
 // Servicer интерфейс для сервиса
@@ -59,8 +60,14 @@ func (s *Router) RegisterRoutes() {
 	s.mux.Use(s.Middl.GunzipMiddleware())
 	s.mux.Use(s.Middl.GzipMiddleware())
 
+	updatesGroup := s.mux.Group("/updates")
+	updatesGroup.Use(s.Middl.CheckHash())
+	{
+		updatesGroup.POST("/", s.UpdateBatchMetricsHandler)
+	}
+
 	s.mux.POST("/update/:type/:name/:value", s.UpdateMetricHandler)
-	s.mux.POST("/updates/", s.UpdateBatchMetricsHandler)
+	// s.mux.POST("/updates/", s.UpdateBatchMetricsHandler)
 	s.mux.GET("/value/:type/:name", s.GetValueHandler)
 	s.mux.GET("/", s.StatisticPage)
 	s.mux.POST("/update/", s.UpdateMetricHandlerJSON)

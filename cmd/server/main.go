@@ -25,7 +25,7 @@ func main() {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
 
-	middle := middleware.New(logger)
+	middle := middleware.New(logger, config.SecretKey)
 
 		
 	stor := storage.Init(config, logger)

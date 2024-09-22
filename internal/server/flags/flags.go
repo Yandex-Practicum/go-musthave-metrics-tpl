@@ -16,6 +16,7 @@ type Config struct {
 	Restore         bool
 	ServerLogFile   string
 	DBDSN		   string
+	SecretKey             string
 }
 
 // GetFlags устанавливает и получает флаги
@@ -28,6 +29,7 @@ func GetFlags() {
 	bindEnvToViper("FileStoragePath", "FILE_STORAGE_PATH")
 	bindEnvToViper("Restore", "RESTORE")
 	bindEnvToViper("ServerLoggerFile", "SERVER_LOGGER_FILE")
+	bindEnvToViper("Key", "KEY")
 
 	// Read the environment variables
 	viper.AutomaticEnv()
@@ -42,6 +44,9 @@ func GetFlags() {
 	pflag.StringP("FileStoragePath", "f", "", "Full filename where current values are saved")
 	pflag.BoolP("Restore", "r", true, "Whether to load previously saved values from the specified file at server startup")
 	pflag.StringP("ServerLoggerFile", "l", "serverlog.log", "Full filename where server logs are saved")
+	pflag.StringP("Key", "k", "", "Key for the server")
+
+	//d=postgres://postgres:mypassword@localhost:5432/metrix?sslmode=disable
 
 	// Parse the command-line flags
 	pflag.Parse()
@@ -60,6 +65,7 @@ func GetFlags() {
 	bindFlagToViper("FileStoragePath")
 	bindFlagToViper("Restore")
 	bindFlagToViper("ServerLoggerFile")
+	bindFlagToViper("Key")
 }
 
 func bindFlagToViper(flagName string) {
@@ -84,7 +90,13 @@ func NewConfig() *Config {
 		Restore:         Restore(),
 		ServerLogFile:   ServerLogFile(),
 		DBDSN:		     DBDSN(),
+		SecretKey:       Key(),
 	}
+}
+
+// Key возвращает ключ
+func Key() string {
+	return viper.GetString("Key")
 }
 
 // DBDSN возвращает строку подключения к базе данных
