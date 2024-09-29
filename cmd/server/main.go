@@ -12,10 +12,13 @@ type MemStorage struct {
 	counters map[string]int64
 }
 
-var storage = MemStorage{gauges: make(map[string]float64), counters: make(map[string]int64)}
-
 func main() {
-	if err := run(); err != nil {
+	storage := &MemStorage{gauges: make(map[string]float64), counters: make(map[string]int64)}
+	fmt.Println("Server is running on http://localhost:8080")
+	mux := http.NewServeMux()
+	mux.HandleFunc("/update/", updateHandler(storage))
+	err := http.ListenAndServe(":8080", mux)
+	if err != nil {
 		panic(err)
 	}
 }
@@ -24,43 +27,48 @@ func badRequest(w http.ResponseWriter) {
 	http.Error(w, "Bad request", http.StatusBadRequest)
 }
 
-func updateHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		http.Error(w, "Only POST method are allowed", http.StatusMethodNotAllowed)
-	}
+func updateHandler(storage *MemStorage) http.HandlerFunc {
+	// Возвращаем анонимную функцию (обработчик)
+	return func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodPost {
+			http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+			return
+		}
 
-	path := strings.Split(req.URL.Path, "/")
-	fmt.Println(path)
+		path := strings.Split(req.URL.Path, "/")
+		fmt.Println(path)
+		// update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
+		if len(path) != 5 {
+			http.Error(w, "Invalid URL format", http.StatusNotFound)
+			return
+		}
+		if req.Header.Get("Content-Type") != "text/plain" {
+			http.Error(w, "Invalid data format", http.StatusNotFound)
+		}
 
-	// update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
+		metricType, metricName, metricValue := path[2], path[3], path[4]
 
-	if len(path) != 4 && req.Header.Get("Content-type") != "text/plain" {
-		http.Error(w, "Invalid URL format", http.StatusNotFound)
-	}
-
-	switch path[1] {
-	case "counters":
-		pathName := path[2]
-		pathValue, err := strconv.ParseInt(path[3], 10, 64)
-		if err != nil {
+		switch metricType {
+		case "counters":
+			pathValue, err := strconv.ParseInt(metricValue, 10, 64)
+			if err != nil {
+				badRequest(w)
+				return
+			}
+			storage.counters[metricName] += pathValue
+			w.WriteHeader(http.StatusOK)
+		case "gauges":
+			pathValue, err := strconv.ParseFloat(metricValue, 64)
+			if err != nil {
+				badRequest(w)
+				return
+			}
+			storage.gauges[metricName] = pathValue
+		default:
 			badRequest(w)
 		}
-		storage.counters[pathName] += pathValue
-	case "gauges":
-		pathName := path[2]
-		pathValue, err := strconv.ParseFloat(path[3], 64)
-		if err != nil {
-			badRequest(w)
-		}
-		storage.gauges[pathName] = pathValue
-	default:
-		badRequest(w)
 	}
 }
 
-func run() error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/update", updateHandler)
-	return http.ListenAndServe(":8080", mux)
-}
-
+// curl -X POST http://localhost:8080/update/gauges/myGauge/3.14159 -H "Content-Type: text/plain"
+// curl -X POST http://localhost:8080/update/counters/myGauge/5 -H "Content-Type: text/plain"
