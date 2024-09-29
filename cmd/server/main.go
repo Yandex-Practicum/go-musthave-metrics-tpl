@@ -12,6 +12,7 @@ type MemStorage struct {
 	counters map[string]int64
 }
 
+
 func main() {
 	storage := &MemStorage{gauges: make(map[string]float64), counters: make(map[string]int64)}
 	fmt.Println("Server is running on http://localhost:8080")
