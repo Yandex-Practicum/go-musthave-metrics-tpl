@@ -1,3 +1,3 @@
 module evgen3000/go-musthave-metrics-tpl.git
 
-go 1.23.1
+go 1.22.7
