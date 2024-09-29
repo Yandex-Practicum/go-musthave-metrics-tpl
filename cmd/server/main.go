@@ -50,7 +50,7 @@ func updateHandler(storage *MemStorage) http.HandlerFunc {
 		metricType, metricName, metricValue := path[2], path[3], path[4]
 
 		switch metricType {
-		case "counters":
+		case "counter":
 			pathValue, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
 				badRequest(w)
@@ -58,7 +58,7 @@ func updateHandler(storage *MemStorage) http.HandlerFunc {
 			}
 			storage.counters[metricName] += pathValue
 			w.WriteHeader(http.StatusOK)
-		case "gauges":
+		case "gauge":
 			pathValue, err := strconv.ParseFloat(metricValue, 64)
 			if err != nil {
 				badRequest(w)
