@@ -24,10 +24,6 @@ func main() {
 	}
 }
 
-func badRequest(w http.ResponseWriter) {
-	http.Error(w, "Bad request", http.StatusBadRequest)
-}
-
 func updateHandler(storage *MemStorage) http.HandlerFunc {
 	// Возвращаем анонимную функцию (обработчик)
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -38,7 +34,6 @@ func updateHandler(storage *MemStorage) http.HandlerFunc {
 
 		path := strings.Split(req.URL.Path, "/")
 		fmt.Println(path)
-		// update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 		if len(path) != 5 {
 			http.Error(w, "Invalid URL format", http.StatusNotFound)
 			return
@@ -53,23 +48,22 @@ func updateHandler(storage *MemStorage) http.HandlerFunc {
 		case "counter":
 			pathValue, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
-				badRequest(w)
+				http.Error(w, "Bad request", http.StatusBadRequest)
 				return
 			}
 			storage.counters[metricName] += pathValue
-			w.WriteHeader(http.StatusOK)
 		case "gauge":
 			pathValue, err := strconv.ParseFloat(metricValue, 64)
 			if err != nil {
-				badRequest(w)
+				http.Error(w, "Bad request", http.StatusBadRequest)
 				return
 			}
 			storage.gauges[metricName] = pathValue
 		default:
-			badRequest(w)
+			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
 	}
 }
 
 // curl -X POST http://localhost:8080/update/gauges/myGauge/3.14159 -H "Content-Type: text/plain"
-// curl -X POST http://localhost:8080/update/counters/myGauge/5 -H "Content-Type: text/plain"
+// curl -X POST http://localhost:8080/update/counter/myGauge/5 -H "Content-Type: text/plain"
