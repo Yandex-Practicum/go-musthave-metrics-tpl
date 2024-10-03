@@ -68,7 +68,7 @@ func (a *Agent) SendMetrics(metricType, metricName string, value float64) {
 		fmt.Println("Error of creating request:", err)
 		return
 	}
-	req.Header.Set("Content-type", "text-plain")
+	req.Header.Set("Content-type", "text/plain")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

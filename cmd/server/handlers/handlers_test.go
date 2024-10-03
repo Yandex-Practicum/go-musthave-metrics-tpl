@@ -18,7 +18,7 @@ func TestUpdateHandlerGaugeSuccess(t *testing.T) {
 	UpdateHandler(s, router)
 
 	req := httptest.NewRequest(http.MethodPost, "/update/gauge/temperature/23.5", nil)
-	req.Header.Set("Content-Type", "text-plain")
+	req.Header.Set("Content-Type", "text/plain")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -36,7 +36,7 @@ func TestUpdateHandlerCounterSuccess(t *testing.T) {
 	UpdateHandler(s, router)
 
 	req := httptest.NewRequest(http.MethodPost, "/update/counter/hits/10", nil)
-	req.Header.Set("Content-Type", "text-plain")
+	req.Header.Set("Content-Type", "text/plain")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -68,7 +68,7 @@ func TestUpdateHandlerInvalidMetricType(t *testing.T) {
 	UpdateHandler(s, router)
 
 	req := httptest.NewRequest(http.MethodPost, "/update/unknown/temperature/23.5", nil)
-	req.Header.Set("Content-Type", "text-plain")
+	req.Header.Set("Content-Type", "text/plain")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)

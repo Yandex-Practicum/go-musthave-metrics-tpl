@@ -31,7 +31,7 @@ func UpdateHandler(storage *storage.MemStorage, router *chi.Mux) {
 		metricName := chi.URLParam(r, "metricName")
 		metricValue := chi.URLParam(r, "metricValue")
 
-		if r.Header.Get("Content-Type") != "text-plain" {
+		if r.Header.Get("Content-Type") != "text/plain" {
 			http.Error(rw, "Invalid data format", http.StatusNotFound)
 		}
 		switch metricType {
@@ -75,7 +75,7 @@ func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 				http.Error(rw, "Metric not found", http.StatusNotFound)
 				return
 			}
-			rw.Header().Set("Content-type", "text-plain")
+			rw.Header().Set("Content-type", "text/plain")
 			rw.Write([]byte(strconv.FormatFloat(value, 'f', -1, 64)))
 		case "counter":
 			value, exists := storage.GetCounter(metricName)
@@ -83,7 +83,7 @@ func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 				http.Error(rw, "Metric not found", http.StatusNotFound)
 				return
 			}
-			rw.Header().Set("Content-type", "text-plain")
+			rw.Header().Set("Content-type", "text/plain")
 			rw.Write([]byte(strconv.FormatInt(value, 10)))
 		default:
 			http.Error(rw, "Invalid metric type", http.StatusBadRequest)
