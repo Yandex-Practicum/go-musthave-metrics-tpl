@@ -4,7 +4,6 @@ import (
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -32,11 +31,12 @@ func UpdateHandler(storage *storage.MemStorage, router *chi.Mux) {
 		metricName := chi.URLParam(r, "metricName")
 		metricValue := chi.URLParam(r, "metricValue")
 
-		contentType := r.Header.Get("Content-Type")
-		if !strings.HasPrefix(contentType, "text/plain") {
-			http.Error(rw, "Invalid data format", http.StatusNotFound)
-			return
-		}
+		// contentType := r.Header.Get("Content-Type")
+		// if !strings.HasPrefix(contentType, "text/plain") {
+		// 	http.Error(rw, "Invalid data format", http.StatusNotFound)
+		// 	return
+		// }
+
 		switch metricType {
 		case "counter":
 			value, err := strconv.ParseInt(metricValue, 10, 64)
