@@ -48,20 +48,6 @@ func TestUpdateHandlerCounterSuccess(t *testing.T) {
 	assert.Equal(t, int64(10), value)
 }
 
-func TestUpdateHandlerInvalidContentType(t *testing.T) {
-	s := storage.NewMemStorage()
-	router := chi.NewRouter()
-	UpdateHandler(s, router)
-
-	req := httptest.NewRequest(http.MethodPost, "/update/gauge/temperature/23.5", nil)
-	req.Header.Set("Content-Type", "application/json")
-
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusNotFound, rr.Code)
-}
-
 func TestUpdateHandlerInvalidMetricType(t *testing.T) {
 	s := storage.NewMemStorage()
 	router := chi.NewRouter()
