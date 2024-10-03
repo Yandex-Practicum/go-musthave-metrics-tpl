@@ -19,7 +19,7 @@ func main() {
 	handlers.GetHandler(storage, router)
 
 	fmt.Println("Server is running on http://localhost:8080")
-	err := http.ListenAndServe(":8080", router)
+	err := http.ListenAndServe("localhost:8080", router)
 	if err != nil {
 		panic(err)
 	}
