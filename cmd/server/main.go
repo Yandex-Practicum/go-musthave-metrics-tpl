@@ -1,67 +1,27 @@
 package main
 
 import (
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/handlers"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
-type MemStorage struct {
-	gauges   map[string]float64
-	counters map[string]int64
-}
-
-
 func main() {
-	storage := &MemStorage{gauges: make(map[string]float64), counters: make(map[string]int64)}
+	storage := storage.NewMemStorage()
+
+	router := chi.NewRouter()
+
+	handlers.HomeHandle(storage, router)
+	handlers.UpdateHandler(storage, router)
+	handlers.GetHandler(storage, router)
+
 	fmt.Println("Server is running on http://localhost:8080")
-	mux := http.NewServeMux()
-	mux.HandleFunc("/update/", updateHandler(storage))
-	err := http.ListenAndServe(":8080", mux)
+	err := http.ListenAndServe(":8080", router)
 	if err != nil {
 		panic(err)
-	}
-}
-
-func updateHandler(storage *MemStorage) http.HandlerFunc {
-	// Возвращаем анонимную функцию (обработчик)
-	return func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != http.MethodPost {
-			http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		path := strings.Split(req.URL.Path, "/")
-		fmt.Println(path)
-		if len(path) != 5 {
-			http.Error(w, "Invalid URL format", http.StatusNotFound)
-			return
-		}
-		if req.Header.Get("Content-Type") != "text/plain" {
-			http.Error(w, "Invalid data format", http.StatusNotFound)
-		}
-
-		metricType, metricName, metricValue := path[2], path[3], path[4]
-
-		switch metricType {
-		case "counter":
-			pathValue, err := strconv.ParseInt(metricValue, 10, 64)
-			if err != nil {
-				http.Error(w, "Bad request", http.StatusBadRequest)
-				return
-			}
-			storage.counters[metricName] += pathValue
-		case "gauge":
-			pathValue, err := strconv.ParseFloat(metricValue, 64)
-			if err != nil {
-				http.Error(w, "Bad request", http.StatusBadRequest)
-				return
-			}
-			storage.gauges[metricName] = pathValue
-		default:
-			http.Error(w, "Bad request", http.StatusBadRequest)
-		}
 	}
 }
 
