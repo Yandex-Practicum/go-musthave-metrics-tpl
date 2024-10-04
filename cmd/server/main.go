@@ -11,7 +11,8 @@ import (
 )
 func main() {
 	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
-
+	flag.Parse()
+	
 	storage := storage.NewMemStorage()
 
 	router := chi.NewRouter()
@@ -20,7 +21,7 @@ func main() {
 	handlers.UpdateHandler(storage, router)
 	handlers.GetHandler(storage, router)
 
-	flag.Parse()
+
 	fmt.Println("Server is running on", *hostFlag)
 	err := http.ListenAndServe(*hostFlag, router)
 	if err != nil {
