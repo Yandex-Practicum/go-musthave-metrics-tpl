@@ -9,10 +9,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
 func main() {
 	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
 	flag.Parse()
-	
+
 	storage := storage.NewMemStorage()
 
 	router := chi.NewRouter()
@@ -20,7 +21,6 @@ func main() {
 	handlers.HomeHandle(storage, router)
 	handlers.UpdateHandler(storage, router)
 	handlers.GetHandler(storage, router)
-
 
 	fmt.Println("Server is running on", *hostFlag)
 	err := http.ListenAndServe(*hostFlag, router)

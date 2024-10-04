@@ -10,13 +10,15 @@ import (
 )
 
 type Agent struct {
+	host 					 string
 	pollInterval   time.Duration
 	reportInterval time.Duration
 	poolCount      int64
 }
 
-func NewAgent(poolInterval, reportInterval time.Duration) *Agent {
+func NewAgent(host string, poolInterval, reportInterval time.Duration) *Agent {
 	return &Agent{
+		host: host,
 		pollInterval:   poolInterval,
 		reportInterval: reportInterval,
 		poolCount:      0,
@@ -62,7 +64,7 @@ func (a *Agent) CollectMetrics() map[string]float64 {
 
 func (a *Agent) SendMetrics(metricType, metricName string, value float64) {
 	metricValue := strconv.FormatFloat(value, 'f', -1, 64)
-	url := fmt.Sprintf("http://localhost:8080/update/%s/%s/%s", metricType, metricName, metricValue)
+	url := fmt.Sprintf("http://%s/update/%s/%s/%s",a.host, metricType, metricName, metricValue)
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		fmt.Println("Error of creating request:", err)
