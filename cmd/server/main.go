@@ -3,12 +3,15 @@ package main
 import (
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/handlers"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
+	"flag"
 	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 func main() {
+	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
+
 	storage := storage.NewMemStorage()
 
 	router := chi.NewRouter()
@@ -17,8 +20,9 @@ func main() {
 	handlers.UpdateHandler(storage, router)
 	handlers.GetHandler(storage, router)
 
-	fmt.Println("Server is running on http://localhost:8080")
-	err := http.ListenAndServe("localhost:8080", router)
+	flag.Parse()
+	fmt.Println("Server is running on", *hostFlag)
+	err := http.ListenAndServe(*hostFlag, router)
 	if err != nil {
 		panic(err)
 	}
