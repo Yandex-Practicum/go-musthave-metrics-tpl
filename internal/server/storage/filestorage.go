@@ -17,7 +17,7 @@ import (
 type FileAndMemStorage struct {
 	FileStorage *os.File
 	Encoder     *json.Encoder
-	MS  MemStorage
+	MS          MemStorage
 	mu          sync.Mutex
 }
 

@@ -15,8 +15,8 @@ type Config struct {
 	FileStoragePath string
 	Restore         bool
 	ServerLogFile   string
-	DBDSN		   string
-	SecretKey             string
+	DBDSN           string
+	SecretKey       string
 }
 
 // GetFlags устанавливает и получает флаги
@@ -38,7 +38,7 @@ func GetFlags() {
 	// metrics-db.json
 
 	// Define the flags and bind them to viper
-    pflag.StringP("DatabaseDSN", "d", "", "Database DSN")
+	pflag.StringP("DatabaseDSN", "d", "", "Database DSN")
 	pflag.StringP("ServerAddress", "a", "localhost:8080", "HTTP server network address")
 	pflag.IntP("StoreInterval", "i", 300, "Interval in seconds to store the current server readings to disk")
 	pflag.StringP("FileStoragePath", "f", "", "Full filename where current values are saved")
@@ -69,16 +69,16 @@ func GetFlags() {
 }
 
 func bindFlagToViper(flagName string) {
-    // Проверяем, установлена ли переменная окружения
-    if viper.IsSet(flagName) {
-        log.Printf("Skipping binding flag %s because environment variable is set", flagName)
-        return
-    }
+	// Проверяем, установлена ли переменная окружения
+	if viper.IsSet(flagName) {
+		log.Printf("Skipping binding flag %s because environment variable is set", flagName)
+		return
+	}
 
-    // Связываем флаг с viper, если переменная окружения не установлена
-    if err := viper.BindPFlag(flagName, pflag.Lookup(flagName)); err != nil {
-        log.Println(err)
-    }
+	// Связываем флаг с viper, если переменная окружения не установлена
+	if err := viper.BindPFlag(flagName, pflag.Lookup(flagName)); err != nil {
+		log.Println(err)
+	}
 }
 
 func bindEnvToViper(viperKey, envKey string) {
@@ -96,7 +96,7 @@ func NewConfig() *Config {
 		FileStoragePath: FileStoragePath(),
 		Restore:         Restore(),
 		ServerLogFile:   ServerLogFile(),
-		DBDSN:		     DBDSN(),
+		DBDSN:           DBDSN(),
 		SecretKey:       Key(),
 	}
 }

@@ -51,9 +51,9 @@ func ServerSupportsGzip(address string) bool {
 
 // calculateHash вычисляет HMAC-SHA256 хэш из данных и ключа
 func calculateHash(data, key []byte) string {
-    h := hmac.New(sha256.New, key)
-    h.Write(data)
-    return hex.EncodeToString(h.Sum(nil))
+	h := hmac.New(sha256.New, key)
+	h.Write(data)
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // SendMetricsBatch отправляет метрики на сервер пакетом
@@ -77,7 +77,6 @@ func SendMetricsBatch(cfg *flags.Config, metricsData []metrics.Metrics) {
 	if key != "" {
 		hash = calculateHash(jsonData, []byte(key))
 	}
-
 
 	request := client.R().SetHeader("Content-Type", "application/json")
 	request.SetHeader("HashSHA256", hash)
@@ -169,19 +168,19 @@ func SendMetricsJSON(address string, metricsData []metrics.Metrics) {
 
 // sendWithRetry отправляет запрос с повторными попытками в случае ошибки
 func sendWithRetry(request *resty.Request, url string) error {
-    delay := retryDelay
+	delay := retryDelay
 	for i := 0; i < maxRetries; i++ {
-        resp, err := request.Post(url)
-        if err != nil {
-            log.Printf("Failed to send request: %v\n", err)
-        } else if resp.StatusCode() == 200 {
-            return nil
-        } else {
-            log.Printf("Failed to send request: status code %d\n", resp.StatusCode())
-        }
+		resp, err := request.Post(url)
+		if err != nil {
+			log.Printf("Failed to send request: %v\n", err)
+		} else if resp.StatusCode() == 200 {
+			return nil
+		} else {
+			log.Printf("Failed to send request: status code %d\n", resp.StatusCode())
+		}
 
-        time.Sleep(delay)
-        delay += 2 * time.Second
-    }
-    return fmt.Errorf("failed to send request after %d attempts", maxRetries)
+		time.Sleep(delay)
+		delay += 2 * time.Second
+	}
+	return fmt.Errorf("failed to send request after %d attempts", maxRetries)
 }

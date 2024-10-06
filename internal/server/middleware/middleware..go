@@ -20,13 +20,13 @@ import (
 // Middleware структура для middleware
 type Middleware struct {
 	SecretKey string
-	Logger *logger.Logger
+	Logger    *logger.Logger
 }
 
 // New создание нового middleware
 func New(log *logger.Logger, key string) *Middleware {
 	return &Middleware{
-		Logger: log,
+		Logger:    log,
 		SecretKey: key,
 	}
 }
@@ -39,19 +39,19 @@ type GzipReader struct {
 
 // CheckHash - проверка хэша
 func (m Middleware) CheckHash() gin.HandlerFunc {
-    return func(c *gin.Context) {
+	return func(c *gin.Context) {
 		m.Logger.Info("SecretKey", zap.String("SecretKey", m.SecretKey))
-        if m.SecretKey == "" {
-            c.Next()
-            return
-        }
+		if m.SecretKey == "" {
+			c.Next()
+			return
+		}
 
-        // Проверка хэша на этапе обработки запроса
-        hash := c.GetHeader("HashSHA256")
-        if hash == "" {
-            c.AbortWithStatus(http.StatusBadRequest)
-            return
-        }
+		// Проверка хэша на этапе обработки запроса
+		hash := c.GetHeader("HashSHA256")
+		if hash == "" {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
 
 		// Чтение данных из тела запроса
 		data, err := io.ReadAll(c.Request.Body)
@@ -63,27 +63,27 @@ func (m Middleware) CheckHash() gin.HandlerFunc {
 
 		c.Request.Body = io.NopCloser(strings.NewReader(string(data)))
 
-        expectedHash := calculateHash(data, []byte(m.SecretKey))
+		expectedHash := calculateHash(data, []byte(m.SecretKey))
 		m.Logger.Info("Hash check", zap.String("result", fmt.Sprintf("%v", expectedHash == hash)))
-        if hash != expectedHash {
-            c.AbortWithStatus(http.StatusBadRequest)
-            return
-        }
+		if hash != expectedHash {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
 
-        c.Next()
+		c.Next()
 
-        // Добавление хэша в заголовок ответа на этапе формирования ответа
-        responseData := []byte(c.Writer.Header().Get("Content-Type") + c.Request.URL.Path + c.Request.URL.RawQuery)
-        responseHash := calculateHash(responseData, []byte(m.SecretKey))
-        c.Writer.Header().Set("HashSHA256", responseHash)
-    }
+		// Добавление хэша в заголовок ответа на этапе формирования ответа
+		responseData := []byte(c.Writer.Header().Get("Content-Type") + c.Request.URL.Path + c.Request.URL.RawQuery)
+		responseHash := calculateHash(responseData, []byte(m.SecretKey))
+		c.Writer.Header().Set("HashSHA256", responseHash)
+	}
 }
 
 // calculateHash вычисляет HMAC-SHA256 хэш из данных и ключа
 func calculateHash(data, key []byte) string {
-    h := hmac.New(sha256.New, key)
-    h.Write(data)
-    return hex.EncodeToString(h.Sum(nil))
+	h := hmac.New(sha256.New, key)
+	h.Write(data)
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // Read - чтение данных из gzip.Reader

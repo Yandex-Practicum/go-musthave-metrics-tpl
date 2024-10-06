@@ -15,7 +15,7 @@ import (
 
 // DBStorage структура для хранилища
 type DBStorage struct {
-	DB *pgxpool.Pool
+	DB     *pgxpool.Pool
 	logger Loggerer
 }
 
@@ -28,23 +28,23 @@ func DBConnect(config *flags.Config, logger Loggerer) (*DBStorage, error) {
 	var err error
 
 	for i := 0; i < maxRetries; i++ {
-        db, err = pgxpool.Connect(context.Background(), config.DBDSN)
-        if err == nil {
-            break
-        }
+		db, err = pgxpool.Connect(context.Background(), config.DBDSN)
+		if err == nil {
+			break
+		}
 
-        logger.Error("Failed to connect to database", zap.Error(err))
-        time.Sleep(retryDelay)
-    }
+		logger.Error("Failed to connect to database", zap.Error(err))
+		time.Sleep(retryDelay)
+	}
 
-    if err != nil {
-        return nil, fmt.Errorf("failed to connect to database after %d attempts: %w", maxRetries, err)
-    }
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database after %d attempts: %w", maxRetries, err)
+	}
 
 	return &DBStorage{
-		DB: db,
+		DB:     db,
 		logger: logger,
-		}, nil
+	}, nil
 }
 
 // Ping проверка подключения к базе данных
@@ -83,40 +83,40 @@ func (d *DBStorage) CreateTables() error {
 
 // UpdateBatch обновление метрик
 func (d *DBStorage) UpdateBatch(metrics []models.Metrics) error {
-    d.logger.Info("UpdateBatch", zap.String("metrics", fmt.Sprintf("%v", metrics)))
+	d.logger.Info("UpdateBatch", zap.String("metrics", fmt.Sprintf("%v", metrics)))
 
-    tx, err := d.DB.Begin(context.Background())
-    if err != nil {
-        log.Println("Db failed to begin transaction", err)
-        return fmt.Errorf("failed to begin transaction: %w", err)
-    }
-    defer tx.Rollback(context.Background())
+	tx, err := d.DB.Begin(context.Background())
+	if err != nil {
+		log.Println("Db failed to begin transaction", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(context.Background())
 
-    for _, metric := range metrics {
-        _, err := tx.Exec(context.Background(),
-            `INSERT INTO metrics (name, type, value, delta, timestamp)
+	for _, metric := range metrics {
+		_, err := tx.Exec(context.Background(),
+			`INSERT INTO metrics (name, type, value, delta, timestamp)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (name) DO UPDATE
             SET value = EXCLUDED.value,
                 delta = EXCLUDED.delta,
                 timestamp = EXCLUDED.timestamp`,
-            metric.ID, metric.MType, metric.Value, metric.Delta, time.Now(),
-        )
-        if err != nil {
-            log.Println("Db failed to insert or update", err)
-            return fmt.Errorf("failed to insert or update data: %w", err)
-        }
-    }
+			metric.ID, metric.MType, metric.Value, metric.Delta, time.Now(),
+		)
+		if err != nil {
+			log.Println("Db failed to insert or update", err)
+			return fmt.Errorf("failed to insert or update data: %w", err)
+		}
+	}
 
-    err = tx.Commit(context.Background())
-    if err != nil {
-        log.Println("Db failed to commit transaction", err)
-        return fmt.Errorf("failed to commit transaction: %w", err)
-    }
+	err = tx.Commit(context.Background())
+	if err != nil {
+		log.Println("Db failed to commit transaction", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
 
-    log.Printf("Inserted or updated %d rows", len(metrics))
+	log.Printf("Inserted or updated %d rows", len(metrics))
 
-    return nil
+	return nil
 }
 
 // // UpdateBatch обновление метрик
@@ -178,7 +178,7 @@ func (d *DBStorage) UpdateMetric(metric models.Metrics) error {
 
 // MetrixStatistic получение статистики метрик
 func (d *DBStorage) MetrixStatistic() (map[string]models.Metrics, error) {
-    query := `
+	query := `
         SELECT id, type, name, value, delta, timestamp
         FROM (
             SELECT id, type, name, value, delta, timestamp,
@@ -188,48 +188,48 @@ func (d *DBStorage) MetrixStatistic() (map[string]models.Metrics, error) {
         WHERE rn = 1;
     `
 
-    rows, err := d.DB.Query(context.Background(), query)
-    if err != nil {
-        return nil, fmt.Errorf("failed to select metrics: %w", err)
-    }
-    defer rows.Close()
+	rows, err := d.DB.Query(context.Background(), query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select metrics: %w", err)
+	}
+	defer rows.Close()
 
-    metrics := make(map[string]models.Metrics)
-    for rows.Next() {
-        var metric models.Metrics
-        var id int
-        var timestamp time.Time
-        err = rows.Scan(&id, &metric.MType, &metric.ID, &metric.Value, &metric.Delta, &timestamp)
-        if err != nil {
-            return nil, fmt.Errorf("failed to scan metrics: %w", err)
-        }
-        metrics[metric.ID] = metric
-    }
+	metrics := make(map[string]models.Metrics)
+	for rows.Next() {
+		var metric models.Metrics
+		var id int
+		var timestamp time.Time
+		err = rows.Scan(&id, &metric.MType, &metric.ID, &metric.Value, &metric.Delta, &timestamp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan metrics: %w", err)
+		}
+		metrics[metric.ID] = metric
+	}
 
-    if err = rows.Err(); err != nil {
-        return nil, fmt.Errorf("failed to iterate over metrics: %w", err)
-    }
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate over metrics: %w", err)
+	}
 
-    return metrics, nil
+	return metrics, nil
 }
 
 // GetValue получение значения метрики по ID метрики
 func (d *DBStorage) GetValue(metric models.Metrics) (*models.Metrics, error) {
-    row := d.DB.QueryRow(context.Background(), `SELECT id, type, name, value, delta, timestamp FROM metrics WHERE name = $1 ORDER BY timestamp DESC LIMIT 1`, metric.ID)
+	row := d.DB.QueryRow(context.Background(), `SELECT id, type, name, value, delta, timestamp FROM metrics WHERE name = $1 ORDER BY timestamp DESC LIMIT 1`, metric.ID)
 
-    var m models.Metrics
-    var id int
-    var timestamp time.Time
-    err := row.Scan(&id, &m.MType, &m.ID, &m.Value, &m.Delta, &timestamp)
-    if err != nil {
-        if err == pgx.ErrNoRows {
-            // Если метрика не найдена, возвращаем значение по умолчанию
-            m.Value = nil
-            m.Delta = nil
-            return &m, nil
-        }
-        return nil, fmt.Errorf("failed to select metric: %w", err)
-    }
+	var m models.Metrics
+	var id int
+	var timestamp time.Time
+	err := row.Scan(&id, &m.MType, &m.ID, &m.Value, &m.Delta, &timestamp)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			// Если метрика не найдена, возвращаем значение по умолчанию
+			m.Value = nil
+			m.Delta = nil
+			return &m, nil
+		}
+		return nil, fmt.Errorf("failed to select metric: %w", err)
+	}
 
-    return &m, nil
+	return &m, nil
 }

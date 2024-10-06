@@ -17,7 +17,7 @@ import (
 // Service структура для бизнес-логики
 type Service struct {
 	Storage Storager
-	logger *logger.Logger
+	logger  *logger.Logger
 }
 
 // Storager интерфейс для хранилища
@@ -33,7 +33,7 @@ type Storager interface {
 func New(s Storager, logger *logger.Logger) *Service {
 	return &Service{
 		Storage: s,
-		logger: logger,
+		logger:  logger,
 	}
 }
 

@@ -27,7 +27,6 @@ func main() {
 
 	middle := middleware.New(logger, config.SecretKey)
 
-		
 	stor := storage.Init(config, logger)
 
 	service := service.New(stor, logger)

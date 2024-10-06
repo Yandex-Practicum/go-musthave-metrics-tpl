@@ -21,7 +21,7 @@ type Storager interface {
 // Loggerer интерфейс для логгера
 type Loggerer interface {
 	Error(msg string, fields ...zap.Field)
-	Info (msg string, fields ...zap.Field)
+	Info(msg string, fields ...zap.Field)
 }
 
 // Init инициализация хранилища в зависимости от конфигурации

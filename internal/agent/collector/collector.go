@@ -3,7 +3,10 @@ package collector
 import (
 	"math/rand"
 	"runtime"
+	"strconv"
 
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
 	"github.com/vova4o/yandexadv/internal/agent/metrics"
 )
 
@@ -48,4 +51,40 @@ func CollectMetrics(pollCount int64) []metrics.Metrics {
 		{ID: "PollCount", MType: "counter", Delta: &pollCount},
 		{ID: "RandomValue", MType: "gauge", Value: toFloat64Pointer(rand.Float64())},
 	}
+}
+
+// CollectCPUAndMemlMetrics собирает дополнительные метрики и обновляет их в глобальной переменной
+func CollectCPUAndMemlMetrics(pollCount int64) []metrics.Metrics {
+	// Собираем метрики памяти
+	v, _ := mem.VirtualMemory()
+
+	// Собираем метрики CPU
+	cpuUtilization, _ := cpu.Percent(0, true)
+
+	// Создаем слайс для метрик
+	var additionalMetrics []metrics.Metrics
+
+	// Добавляем метрики памяти
+	additionalMetrics = append(additionalMetrics, metrics.Metrics{
+		ID:    "TotalMemory",
+		MType: "gauge",
+		Value: toFloat64Pointer(float64(v.Total)),
+	})
+
+	additionalMetrics = append(additionalMetrics, metrics.Metrics{
+		ID:    "FreeMemory",
+		MType: "gauge",
+		Value: toFloat64Pointer(float64(v.Free)),
+	})
+
+	// Добавляем метрики CPU
+	for i, cpuPercent := range cpuUtilization {
+		additionalMetrics = append(additionalMetrics, metrics.Metrics{
+			ID:    "CPUutilization" + strconv.Itoa(i+1),
+			MType: "gauge",
+			Value: toFloat64Pointer(cpuPercent),
+		})
+	}
+
+	return additionalMetrics
 }
