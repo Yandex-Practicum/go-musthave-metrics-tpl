@@ -6,26 +6,34 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 )
 
+func runServer(host string, router *chi.Mux) {
+	fmt.Println("Server is running on", host)
+	err := http.ListenAndServe(host, router)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
 	flag.Parse()
-
+	env, isEnv := os.LookupEnv("ADDRESS")
 	storage := storage.NewMemStorage()
 
 	router := chi.NewRouter()
-
 	handlers.HomeHandle(storage, router)
 	handlers.UpdateHandler(storage, router)
 	handlers.GetHandler(storage, router)
 
-	fmt.Println("Server is running on", *hostFlag)
-	err := http.ListenAndServe(*hostFlag, router)
-	if err != nil {
-		panic(err)
+	if isEnv {
+		runServer(env, router)
+	} else {
+		runServer(*hostFlag, router)
 	}
 }
 
