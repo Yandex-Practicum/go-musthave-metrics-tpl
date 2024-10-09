@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type Agent struct {
+type AgentConfig struct {
 	host 					 string
 	pollInterval   time.Duration
 	reportInterval time.Duration
