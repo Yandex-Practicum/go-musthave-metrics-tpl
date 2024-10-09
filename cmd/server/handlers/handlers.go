@@ -9,21 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type LogWriter struct {
-	http.ResponseWriter
-}
-
-func (w LogWriter) Write(p []byte) (n int, err error) {
-	n, err = w.ResponseWriter.Write(p)
-	if err != nil {
-		log.Printf("Write failed: %v", err)
-	}
-	return
-}
-
 func HomeHandle(storage *storage.MemStorage, router *chi.Mux) {
 	router.Get("/", func(rw http.ResponseWriter, r *http.Request) {
-		logWriter := LogWriter{rw}
 		body := "<h4>Gauges</h4>"
 		for gaugeName, value := range storage.GetAllGauges() {
 			body += gaugeName + ": " + strconv.FormatFloat(value, 'f', -1, 64) + "</br>"
@@ -35,7 +22,10 @@ func HomeHandle(storage *storage.MemStorage, router *chi.Mux) {
 		}
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-		logWriter.Write([]byte(body))
+		_, err := rw.Write([]byte(body))
+		if err != nil {
+			log.Printf("Write failed: %v", err)
+		}
 	})
 
 }
@@ -76,7 +66,6 @@ func UpdateHandler(storage *storage.MemStorage, router *chi.Mux) {
 
 func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 	router.Get("/value/{metricType}/{metricName}", func(rw http.ResponseWriter, r *http.Request) {
-		logWriter := LogWriter{rw}
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 
@@ -93,7 +82,10 @@ func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 				return
 			}
 			rw.Header().Set("Content-type", "text/plain")
-			logWriter.Write([]byte(strconv.FormatFloat(value, 'f', -1, 64)))
+			_, err := rw.Write([]byte(strconv.FormatFloat(value, 'f', -1, 64)))
+			if err != nil {
+				log.Printf("Write failed: %v", err)
+			}
 		case "counter":
 			value, exists := storage.GetCounter(metricName)
 			if !exists {
@@ -101,7 +93,10 @@ func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 				return
 			}
 			rw.Header().Set("Content-type", "text/plain")
-			logWriter.Write([]byte(strconv.FormatInt(value, 10)))
+			_, err := rw.Write([]byte(strconv.FormatInt(value, 10)))
+			if err != nil {
+				log.Printf("Write failed: %v", err)
+			}
 		default:
 			http.Error(rw, "Invalid metric type", http.StatusBadRequest)
 			return
