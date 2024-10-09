@@ -2,14 +2,28 @@ package handlers
 
 import (
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
 
+type LogWriter struct {
+	http.ResponseWriter
+}
+
+func (w LogWriter) Write(p []byte) (n int, err error) {
+	n, err = w.ResponseWriter.Write(p)
+	if err != nil {
+		log.Printf("Write failed: %v", err)
+	}
+	return
+}
+
 func HomeHandle(storage *storage.MemStorage, router *chi.Mux) {
 	router.Get("/", func(rw http.ResponseWriter, r *http.Request) {
+		logWriter := LogWriter{rw}
 		body := "<h4>Gauges</h4>"
 		for gaugeName, value := range storage.GetAllGauges() {
 			body += gaugeName + ": " + strconv.FormatFloat(value, 'f', -1, 64) + "</br>"
@@ -20,7 +34,8 @@ func HomeHandle(storage *storage.MemStorage, router *chi.Mux) {
 			body += counterName + ": " + strconv.FormatInt(value, 10) + "</br>"
 		}
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-		rw.Write([]byte(body))
+
+		logWriter.Write([]byte(body))
 	})
 
 }
@@ -61,6 +76,7 @@ func UpdateHandler(storage *storage.MemStorage, router *chi.Mux) {
 
 func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 	router.Get("/value/{metricType}/{metricName}", func(rw http.ResponseWriter, r *http.Request) {
+		logWriter := LogWriter{rw}
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 
@@ -77,7 +93,7 @@ func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 				return
 			}
 			rw.Header().Set("Content-type", "text/plain")
-			rw.Write([]byte(strconv.FormatFloat(value, 'f', -1, 64)))
+			logWriter.Write([]byte(strconv.FormatFloat(value, 'f', -1, 64)))
 		case "counter":
 			value, exists := storage.GetCounter(metricName)
 			if !exists {
@@ -85,7 +101,7 @@ func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 				return
 			}
 			rw.Header().Set("Content-type", "text/plain")
-			rw.Write([]byte(strconv.FormatInt(value, 10)))
+			logWriter.Write([]byte(strconv.FormatInt(value, 10)))
 		default:
 			http.Error(rw, "Invalid metric type", http.StatusBadRequest)
 			return
