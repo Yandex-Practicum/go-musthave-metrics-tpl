@@ -10,7 +10,7 @@ import (
 )
 
 type AgentConfig struct {
-	host 					 string
+	host           string
 	pollInterval   time.Duration
 	reportInterval time.Duration
 	poolCount      int64
@@ -18,7 +18,7 @@ type AgentConfig struct {
 
 func NewAgent(host string, poolInterval, reportInterval time.Duration) *AgentConfig {
 	return &AgentConfig{
-		host: host,
+		host:           host,
 		pollInterval:   poolInterval,
 		reportInterval: reportInterval,
 		poolCount:      0,
@@ -29,7 +29,8 @@ func (a *AgentConfig) CollectMetrics() map[string]float64 {
 	memStats := new(runtime.MemStats)
 	runtime.ReadMemStats(memStats)
 
-	metrics := map[string]float64{"Alloc": float64(memStats.Alloc),
+	metrics := map[string]float64{
+		"Alloc":         float64(memStats.Alloc),
 		"BuckHashSys":   float64(memStats.BuckHashSys),
 		"Frees":         float64(memStats.Frees),
 		"GCCPUFraction": memStats.GCCPUFraction,
@@ -64,7 +65,7 @@ func (a *AgentConfig) CollectMetrics() map[string]float64 {
 
 func (a *AgentConfig) SendMetrics(metricType, metricName string, value float64) {
 	metricValue := strconv.FormatFloat(value, 'f', -1, 64)
-	url := fmt.Sprintf("http://%s/update/%s/%s/%s",a.host, metricType, metricName, metricValue)
+	url := fmt.Sprintf("http://%s/update/%s/%s/%s", a.host, metricType, metricName, metricValue)
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		fmt.Println("Error of creating request:", err)

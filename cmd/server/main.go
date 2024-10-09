@@ -5,11 +5,23 @@ import (
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+	"os/signal"
 
 	"github.com/go-chi/chi/v5"
 )
+
+func gracefulShutdown() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		log.Println("Shutting down gracefully")
+		os.Exit(0)
+	}()
+}
 
 func runServer(host string, router *chi.Mux) {
 	fmt.Println("Server is running on", host)
@@ -20,6 +32,7 @@ func runServer(host string, router *chi.Mux) {
 }
 
 func main() {
+	gracefulShutdown()
 	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
 	flag.Parse()
 	env, isEnv := os.LookupEnv("ADDRESS")
