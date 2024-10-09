@@ -16,8 +16,8 @@ type AgentConfig struct {
 	poolCount      int64
 }
 
-func NewAgent(host string, poolInterval, reportInterval time.Duration) *Agent {
-	return &Agent{
+func NewAgent(host string, poolInterval, reportInterval time.Duration) *AgentConfig {
+	return &AgentConfig{
 		host: host,
 		pollInterval:   poolInterval,
 		reportInterval: reportInterval,
@@ -25,7 +25,7 @@ func NewAgent(host string, poolInterval, reportInterval time.Duration) *Agent {
 	}
 }
 
-func (a *Agent) CollectMetrics() map[string]float64 {
+func (a *AgentConfig) CollectMetrics() map[string]float64 {
 	memStats := new(runtime.MemStats)
 	runtime.ReadMemStats(memStats)
 
@@ -62,7 +62,7 @@ func (a *Agent) CollectMetrics() map[string]float64 {
 	return metrics
 }
 
-func (a *Agent) SendMetrics(metricType, metricName string, value float64) {
+func (a *AgentConfig) SendMetrics(metricType, metricName string, value float64) {
 	metricValue := strconv.FormatFloat(value, 'f', -1, 64)
 	url := fmt.Sprintf("http://%s/update/%s/%s/%s",a.host, metricType, metricName, metricValue)
 	req, err := http.NewRequest(http.MethodPost, url, nil)
@@ -83,7 +83,7 @@ func (a *Agent) SendMetrics(metricType, metricName string, value float64) {
 	fmt.Printf("Metrics %s (%s) with value %s sent succesfully", metricName, metricType, metricValue)
 }
 
-func (a *Agent) Start() {
+func (a *AgentConfig) Start() {
 	ticker := time.NewTicker(a.pollInterval)
 	reportTicker := time.NewTicker(a.reportInterval)
 	for {
