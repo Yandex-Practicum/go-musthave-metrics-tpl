@@ -9,7 +9,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func HomeHandler(storage *storage.MemStorage) http.HandlerFunc {
+type Handler struct {}
+
+func NewHandler() *Handler {
+	return &Handler{}
+}
+
+func (h Handler) HomeHandler(storage *storage.MemStorage) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		body := "<h4>Gauges</h4>"
 		for gaugeName, value := range storage.GetAllGauges() {
@@ -29,7 +35,7 @@ func HomeHandler(storage *storage.MemStorage) http.HandlerFunc {
 	}
 }
 
-func UpdateMetricHandler(storage *storage.MemStorage) http.HandlerFunc {
+func (h Handler) UpdateMetricHandler(storage *storage.MemStorage) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
@@ -59,7 +65,7 @@ func UpdateMetricHandler(storage *storage.MemStorage) http.HandlerFunc {
 	}
 }
 
-func GetMetricHandler(storage *storage.MemStorage) http.HandlerFunc {
+func (h Handler) GetMetricHandler(storage *storage.MemStorage) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
