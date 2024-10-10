@@ -35,11 +35,11 @@ func main() {
 	if isReportIntervalEn && isPollIntervalEnv && isHostEnv {
 		poolInterval, err := strconv.ParseInt(pollIntervalEnv, 10, 64)
 		if err != nil {
-			panic(err)
+			log.Fatal("Variable is not valid:", err)
 		}
 		reportInterval, err := strconv.ParseInt(reportIntervalEnv, 10, 64)
 		if err != nil {
-			panic(err)
+			log.Fatal("Variable is not valid:", err)
 		}
 		(client.NewAgent(hostEnv, time.Duration(poolInterval)*time.Second, time.Duration((reportInterval))*time.Second)).Start()
 	} else {
