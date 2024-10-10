@@ -1,7 +1,7 @@
 package main
 
 import (
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/client"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/provider"
 	"flag"
 	"log"
 	"os"
@@ -41,9 +41,9 @@ func main() {
 		if err != nil {
 			log.Fatal("Variable is not valid:", err)
 		}
-		(client.NewAgent(hostEnv, time.Duration(poolInterval)*time.Second, time.Duration((reportInterval))*time.Second)).Start()
+		(provider.NewAgent(hostEnv, time.Duration(poolInterval)*time.Second, time.Duration((reportInterval))*time.Second)).Start()
 	} else {
-		(client.NewAgent(*hostFlag, time.Duration(*pollIntervalFlag)*time.Second, time.Duration((*reportIntervalFlag))*time.Second)).Start()
+		(provider.NewAgent(*hostFlag, time.Duration(*pollIntervalFlag)*time.Second, time.Duration((*reportIntervalFlag))*time.Second)).Start()
 	}
 
 }

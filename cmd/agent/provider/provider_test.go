@@ -1,4 +1,4 @@
-package client
+package provider_test
 
 import (
 	"fmt"
