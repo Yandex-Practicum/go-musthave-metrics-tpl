@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func HomeHandle(storage *storage.MemStorage, router *chi.Mux) {
-	router.Get("/", func(rw http.ResponseWriter, r *http.Request) {
+func HomeHandler(storage *storage.MemStorage) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
 		body := "<h4>Gauges</h4>"
 		for gaugeName, value := range storage.GetAllGauges() {
 			body += gaugeName + ": " + strconv.FormatFloat(value, 'f', -1, 64) + "</br>"
@@ -26,21 +26,14 @@ func HomeHandle(storage *storage.MemStorage, router *chi.Mux) {
 		if err != nil {
 			log.Printf("Write failed: %v", err)
 		}
-	})
-
+	}
 }
 
-func UpdateHandler(storage *storage.MemStorage, router *chi.Mux) {
-	router.Post("/update/{metricType}/{metricName}/{metricValue}", func(rw http.ResponseWriter, r *http.Request) {
+func UpdateMetricHandler(storage *storage.MemStorage) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 		metricValue := chi.URLParam(r, "metricValue")
-
-		// contentType := r.Header.Get("Content-Type")
-		// if !strings.HasPrefix(contentType, "text/plain") {
-		// 	http.Error(rw, "Invalid data format", http.StatusNotFound)
-		// 	return
-		// }
 
 		switch metricType {
 		case "counter":
@@ -61,11 +54,13 @@ func UpdateHandler(storage *storage.MemStorage, router *chi.Mux) {
 			http.Error(rw, "Bad request", http.StatusBadRequest)
 			return
 		}
-	})
+
+		rw.WriteHeader(http.StatusOK)
+	}
 }
 
-func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
-	router.Get("/value/{metricType}/{metricName}", func(rw http.ResponseWriter, r *http.Request) {
+func GetMetricHandler(storage *storage.MemStorage) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 
@@ -102,5 +97,5 @@ func GetHandler(storage *storage.MemStorage, router *chi.Mux) {
 			return
 		}
 
-	})
+	}
 }

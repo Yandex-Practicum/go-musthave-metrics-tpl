@@ -1,7 +1,7 @@
 package main
 
 import (
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/handlers"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"flag"
 	"fmt"
@@ -24,16 +24,12 @@ func main() {
 	flag.Parse()
 	env, isEnv := os.LookupEnv("ADDRESS")
 	storage := storage.NewMemStorage()
-
-	router := chi.NewRouter()
-	handlers.HomeHandle(storage, router)
-	handlers.UpdateHandler(storage, router)
-	handlers.GetHandler(storage, router)
+	r := router.SetupRouter(storage)
 
 	if isEnv {
-		runServer(env, router)
+		runServer(env, r)
 	} else {
-		runServer(*hostFlag, router)
+		runServer(*hostFlag, r)
 	}
 }
 
