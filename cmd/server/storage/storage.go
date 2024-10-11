@@ -1,4 +1,5 @@
 package storage
+
 type MemStorage struct {
 	gauges   map[string]float64
 	counters map[string]int64
