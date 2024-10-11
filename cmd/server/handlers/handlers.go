@@ -17,7 +17,7 @@ func NewHandler(storage *storage.MemStorage) *Handler {
 	return &Handler{storage}
 }
 
-func (h *Handler) HomeHandler(rw http.ResponseWriter) {
+func (h *Handler) HomeHandler(rw http.ResponseWriter, r *http.Request) {
 	body := "<h4>Gauges</h4>"
 	for gaugeName, value := range h.storage.GetAllGauges() {
 		body += gaugeName + ": " + strconv.FormatFloat(value, 'f', -1, 64) + "</br>"
