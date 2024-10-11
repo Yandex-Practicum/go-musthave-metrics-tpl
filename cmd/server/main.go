@@ -23,8 +23,8 @@ func main() {
 	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
 	flag.Parse()
 	env, isEnv := os.LookupEnv("ADDRESS")
-	storage := storage.NewMemStorage()
-	r := router.SetupRouter(storage)
+	s := storage.NewMemStorage()
+	r := router.SetupRouter(s)
 
 	if isEnv {
 		runServer(env, r)

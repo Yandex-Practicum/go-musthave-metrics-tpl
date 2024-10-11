@@ -1,18 +1,17 @@
 package handlers_test
 
 import (
-    "evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
-    "evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
-    "net/http"
-    "net/http/httptest"
-    "testing"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
-    "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUpdateHandlerGaugeSuccess(t *testing.T) {
 	s := storage.NewMemStorage()
-
 	r := router.SetupRouter(s)
 
 	req := httptest.NewRequest(http.MethodPost, "/update/gauge/temperature/23.5", nil)
@@ -60,9 +59,8 @@ func TestUpdateHandlerInvalidMetricType(t *testing.T) {
 
 func TestGetHandlerGaugeSuccess(t *testing.T) {
 	s := storage.NewMemStorage()
-	s.SetGauge("temperature", 23.5)
-
 	r := router.SetupRouter(s)
+	s.SetGauge("temperature", 23.5)
 
 	req := httptest.NewRequest(http.MethodGet, "/value/gauge/temperature", nil)
 
@@ -75,9 +73,8 @@ func TestGetHandlerGaugeSuccess(t *testing.T) {
 
 func TestGetHandlerCounterSuccess(t *testing.T) {
 	s := storage.NewMemStorage()
-	s.IncrementCounter("hits", 10)
-
 	r := router.SetupRouter(s)
+	s.IncrementCounter("hits", 10)
 
 	req := httptest.NewRequest(http.MethodGet, "/value/counter/hits", nil)
 
@@ -102,10 +99,9 @@ func TestGetHandlerMetricNotFound(t *testing.T) {
 
 func TestHomeHandle(t *testing.T) {
 	s := storage.NewMemStorage()
+	r := router.SetupRouter(s)
 	s.SetGauge("temperature", 23.5)
 	s.IncrementCounter("hits", 10)
-
-	r := router.SetupRouter(s)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
