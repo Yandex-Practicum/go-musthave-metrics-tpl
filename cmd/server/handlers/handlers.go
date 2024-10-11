@@ -23,8 +23,7 @@ func NewHandler(storage *storage.MemStorage) *Handler {
 	return &Handler{storage}
 }
 
-func (h *Handler) HomeHandler(rw http.ResponseWriter, r *http.Request) {
-
+func (h *Handler) HomeHandler(rw http.ResponseWriter, _ *http.Request) {
 	var body strings.Builder
 	body.WriteString("<h4>Gauges</h4>")
 	for gaugeName, value := range h.storage.GetAllGauges() {
