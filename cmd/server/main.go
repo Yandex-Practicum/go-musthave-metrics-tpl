@@ -5,6 +5,7 @@ import (
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -15,7 +16,7 @@ func runServer(host string, router *chi.Mux) {
 	fmt.Println("Server is running on", host)
 	err := http.ListenAndServe(host, router)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
 
