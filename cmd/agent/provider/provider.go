@@ -3,8 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -82,12 +80,7 @@ func (a *AgentConfig) SendMetrics(metricType, metricName string, value float64) 
 		fmt.Println("Error sending request:", err)
 		return
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Println(err)
-		}
-	}(resp.Body)
+	defer resp.Body.Close()
 
 	fmt.Printf("Metrics %s (%s) with value %s sent successfully\n", metricName, metricType, metricValue)
 }
