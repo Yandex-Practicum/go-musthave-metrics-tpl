@@ -1,7 +1,10 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -16,10 +19,10 @@ type AgentConfig struct {
 	poolCount      int64
 }
 
-func NewAgent(host string, poolInterval, reportInterval time.Duration) *AgentConfig {
+func NewAgent(host string, pollInterval, reportInterval time.Duration) *AgentConfig {
 	return &AgentConfig{
 		host:           host,
-		pollInterval:   poolInterval,
+		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
 		poolCount:      0,
 	}
@@ -68,28 +71,39 @@ func (a *AgentConfig) SendMetrics(metricType, metricName string, value float64) 
 	url := fmt.Sprintf("http://%s/update/%s/%s/%s", a.host, metricType, metricName, metricValue)
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
-		fmt.Println("Error of creating request:", err)
+		fmt.Println("Error creating request:", err)
 		return
 	}
-	req.Header.Set("Content-type", "text/plain")
+	req.Header.Set("Content-Type", "text/plain")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error to sending request:", err)
+		fmt.Println("Error sending request:", err)
 		return
 	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(resp.Body)
 
-	defer resp.Body.Close()
-	fmt.Printf("Metrics %s (%s) with value %s sent succesfully", metricName, metricType, metricValue)
+	fmt.Printf("Metrics %s (%s) with value %s sent successfully\n", metricName, metricType, metricValue)
 }
 
-func (a *AgentConfig) Start() {
-	ticker := time.NewTicker(a.pollInterval)
+func (a *AgentConfig) Start(ctx context.Context) {
+	pollTicker := time.NewTicker(a.pollInterval)
 	reportTicker := time.NewTicker(a.reportInterval)
+	defer pollTicker.Stop()
+	defer reportTicker.Stop()
+
 	for {
 		select {
-		case <-ticker.C:
+		case <-ctx.Done():
+			fmt.Println("Agent shutting down gracefully...")
+			return
+		case <-pollTicker.C:
 			a.poolCount++
 			metrics := a.CollectMetrics()
 			metrics["PoolCount"] = float64(a.poolCount)
@@ -97,13 +111,12 @@ func (a *AgentConfig) Start() {
 		case <-reportTicker.C:
 			metrics := a.CollectMetrics()
 			metrics["PoolCount"] = float64(a.poolCount)
-			fmt.Println("Metrics collected:", metrics)
+			fmt.Println("Metrics collected for report:", metrics)
 
 			for name, value := range metrics {
 				a.SendMetrics("gauge", name, value)
 			}
 			a.SendMetrics("counter", "PoolCount", float64(a.poolCount))
-
 		}
 	}
 }
