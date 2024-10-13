@@ -68,8 +68,8 @@ func (a *AgentConfig) SendMetrics(metricType, metricName string, value float64) 
 	metricValue := strconv.FormatFloat(value, 'f', -1, 64)
 	url := fmt.Sprintf("http://%s/update/%s/%s/%s", a.host, metricType, metricName, metricValue)
 
-	ctx, cncl := context.WithTimeout(context.Background(), time.Second*3)
-	defer cncl()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {
