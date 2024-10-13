@@ -80,7 +80,11 @@ func (a *AgentConfig) SendMetrics(metricType, metricName string, value float64) 
 		fmt.Println("Error sending request:", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	fmt.Printf("Metrics %s (%s) with value %s sent successfully\n", metricName, metricType, metricValue)
 }
