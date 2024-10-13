@@ -67,7 +67,11 @@ func (a *AgentConfig) CollectMetrics() map[string]float64 {
 func (a *AgentConfig) SendMetrics(metricType, metricName string, value float64) {
 	metricValue := strconv.FormatFloat(value, 'f', -1, 64)
 	url := fmt.Sprintf("http://%s/update/%s/%s/%s", a.host, metricType, metricName, metricValue)
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+
+	ctx, cncl := context.WithTimeout(context.Background(), time.Second*3)
+	defer cncl()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
