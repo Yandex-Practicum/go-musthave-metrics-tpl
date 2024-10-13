@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/provider"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/collector"
 	"evgen3000/go-musthave-metrics-tpl.git/internal/config"
 	"log"
 	"os"
@@ -23,6 +23,6 @@ func main() {
 	}()
 
 	c := config.GetAgentConfig()
-	agent := provider.NewAgent(c.Host, time.Duration(c.PoolInterval)*time.Second, time.Duration(c.ReportInterval)*time.Second)
+	agent := collector.NewAgent(c.Host, time.Duration(c.PoolInterval)*time.Second, time.Duration(c.ReportInterval)*time.Second)
 	agent.Start(ctx)
 }

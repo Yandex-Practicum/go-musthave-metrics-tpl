@@ -1,4 +1,4 @@
-package provider_test
+package collector_test
 
 import (
 	"fmt"
@@ -51,7 +51,11 @@ func TestAgentSendMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error sending request: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				fmt.Printf("Error closing response body: %v\n", err)
+			}
+		}()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status 200 OK")
 	}
