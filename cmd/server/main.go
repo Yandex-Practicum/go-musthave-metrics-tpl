@@ -3,13 +3,11 @@ package main
 import (
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
-	"flag"
+	"evgen3000/go-musthave-metrics-tpl.git/internal/config"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
-	"os"
-
-	"github.com/go-chi/chi/v5"
 )
 
 func runServer(host string, router *chi.Mux) {
@@ -21,17 +19,11 @@ func runServer(host string, router *chi.Mux) {
 }
 
 func main() {
-	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
-	flag.Parse()
-	env, isEnv := os.LookupEnv("ADDRESS")
+	c := config.GetHost()
 	s := storage.NewMemStorage()
 	r := router.SetupRouter(s)
 
-	if isEnv {
-		runServer(env, r)
-	} else {
-		runServer(*hostFlag, r)
-	}
+	runServer(c.Value, r)
 }
 
 // curl -X POST http://localhost:8080/update/gauges/myGauge/3.14159 -H "Content-Type: text/plain"
