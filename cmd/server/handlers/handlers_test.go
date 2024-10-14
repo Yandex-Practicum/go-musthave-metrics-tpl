@@ -1,12 +1,12 @@
 package handlers_test
 
 import (
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"github.com/stretchr/testify/assert"
 )
 
