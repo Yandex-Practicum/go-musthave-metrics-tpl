@@ -3,11 +3,10 @@ package collector
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"net/http"
-	"runtime"
-	"strconv"
 	"time"
+
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/httpclient"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/metrics"
 )
 
 type AgentConfig struct {
@@ -15,6 +14,8 @@ type AgentConfig struct {
 	pollInterval   time.Duration
 	reportInterval time.Duration
 	poolCount      int64
+	collector      *metrics.Collector
+	httpClient     *httpclient.HttpClient
 }
 
 func NewAgent(host string, pollInterval, reportInterval time.Duration) *AgentConfig {
@@ -23,74 +24,9 @@ func NewAgent(host string, pollInterval, reportInterval time.Duration) *AgentCon
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
 		poolCount:      0,
+		collector:      metrics.NewMetricsCollector(),
+		httpClient:     httpclient.NewHttpClient(host),
 	}
-}
-
-func (a *AgentConfig) CollectMetrics() map[string]float64 {
-	memStats := new(runtime.MemStats)
-	runtime.ReadMemStats(memStats)
-
-	metrics := map[string]float64{
-		"Alloc":         float64(memStats.Alloc),
-		"BuckHashSys":   float64(memStats.BuckHashSys),
-		"Frees":         float64(memStats.Frees),
-		"GCCPUFraction": memStats.GCCPUFraction,
-		"GCSys":         float64(memStats.GCSys),
-		"HeapAlloc":     float64(memStats.HeapAlloc),
-		"HeapIdle":      float64(memStats.HeapIdle),
-		"HeapInuse":     float64(memStats.HeapInuse),
-		"HeapObjects":   float64(memStats.HeapObjects),
-		"HeapReleased":  float64(memStats.HeapReleased),
-		"HeapSys":       float64(memStats.HeapSys),
-		"LastGC":        float64(memStats.LastGC),
-		"Lookups":       float64(memStats.Lookups),
-		"MCacheInuse":   float64(memStats.MCacheInuse),
-		"MCacheSys":     float64(memStats.MCacheSys),
-		"MSpanInuse":    float64(memStats.MSpanInuse),
-		"MSpanSys":      float64(memStats.MSpanSys),
-		"Mallocs":       float64(memStats.Mallocs),
-		"NextGC":        float64(memStats.NextGC),
-		"NumForcedGC":   float64(memStats.NumForcedGC),
-		"NumGC":         float64(memStats.NumGC),
-		"OtherSys":      float64(memStats.OtherSys),
-		"PauseTotalNs":  float64(memStats.PauseTotalNs),
-		"StackInuse":    float64(memStats.StackInuse),
-		"StackSys":      float64(memStats.StackSys),
-		"Sys":           float64(memStats.Sys),
-		"TotalAlloc":    float64(memStats.TotalAlloc),
-		"RandomValue":   rand.Float64() * 100,
-	}
-
-	return metrics
-}
-
-func (a *AgentConfig) SendMetrics(metricType, metricName string, value float64) {
-	metricValue := strconv.FormatFloat(value, 'f', -1, 64)
-	url := fmt.Sprintf("http://%s/update/%s/%s/%s", a.host, metricType, metricName, metricValue)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
-	if err != nil {
-		fmt.Println("Error creating request:", err)
-		return
-	}
-	req.Header.Set("Content-Type", "text/plain")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error sending request:", err)
-		return
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			fmt.Printf("Error closing response body: %v\n", err)
-		}
-	}()
-
-	fmt.Printf("Metrics %s (%s) with value %s sent successfully\n", metricName, metricType, metricValue)
 }
 
 func (a *AgentConfig) Start(ctx context.Context) {
@@ -106,18 +42,18 @@ func (a *AgentConfig) Start(ctx context.Context) {
 			return
 		case <-pollTicker.C:
 			a.poolCount++
-			metrics := a.CollectMetrics()
-			metrics["PoolCount"] = float64(a.poolCount)
-			fmt.Println("Metrics collected:", metrics)
+			collectedMetrics := a.collector.CollectMetrics()
+			collectedMetrics["PoolCount"] = float64(a.poolCount)
+			fmt.Println("Metrics collected:", collectedMetrics)
 		case <-reportTicker.C:
-			metrics := a.CollectMetrics()
-			metrics["PoolCount"] = float64(a.poolCount)
-			fmt.Println("Metrics collected for report:", metrics)
+			collectedMetrics := a.collector.CollectMetrics()
+			collectedMetrics["PoolCount"] = float64(a.poolCount)
+			fmt.Println("Metrics collected for report:", collectedMetrics)
 
-			for name, value := range metrics {
-				a.SendMetrics("gauge", name, value)
+			for name, value := range collectedMetrics {
+				a.httpClient.SendMetrics("gauge", name, value)
 			}
-			a.SendMetrics("counter", "PoolCount", float64(a.poolCount))
+			a.httpClient.SendMetrics("counter", "PoolCount", float64(a.poolCount))
 		}
 	}
 }
