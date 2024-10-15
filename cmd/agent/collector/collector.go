@@ -15,7 +15,7 @@ type AgentConfig struct {
 	reportInterval time.Duration
 	poolCount      int64
 	collector      *metrics.Collector
-	httpClient     *httpclient.HttpClient
+	httpClient     *httpclient.HTTPClient
 }
 
 func NewAgent(host string, pollInterval, reportInterval time.Duration) *AgentConfig {
@@ -25,7 +25,7 @@ func NewAgent(host string, pollInterval, reportInterval time.Duration) *AgentCon
 		reportInterval: reportInterval,
 		poolCount:      0,
 		collector:      metrics.NewMetricsCollector(),
-		httpClient:     httpclient.NewHttpClient(host),
+		httpClient:     httpclient.NewHTTPClient(host),
 	}
 }
 

@@ -8,15 +8,15 @@ import (
 	"time"
 )
 
-type HttpClient struct {
+type HTTPClient struct {
 	host string
 }
 
-func NewHttpClient(host string) *HttpClient {
-	return &HttpClient{host: host}
+func NewHTTPClient(host string) *HTTPClient {
+	return &HTTPClient{host: host}
 }
 
-func (hc *HttpClient) SendMetrics(metricType, metricName string, value float64) {
+func (hc *HTTPClient) SendMetrics(metricType, metricName string, value float64) {
 	metricValue := strconv.FormatFloat(value, 'f', -1, 64)
 	url := fmt.Sprintf("http://%s/update/%s/%s/%s", hc.host, metricType, metricName, metricValue)
 
