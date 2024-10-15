@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/collector"
-	"evgen3000/go-musthave-metrics-tpl.git/internal/config"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/collector"
+	"evgen3000/go-musthave-metrics-tpl.git/internal/config"
 )
 
 func main() {

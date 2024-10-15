@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"net/http"
+
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"evgen3000/go-musthave-metrics-tpl.git/internal/config"
-	"fmt"
 	"github.com/go-chi/chi/v5"
-	"log"
-	"net/http"
 )
 
 func runServer(host string, router *chi.Mux) {
