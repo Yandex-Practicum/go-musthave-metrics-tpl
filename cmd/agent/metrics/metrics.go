@@ -1,21 +1,39 @@
 package metrics
 
 import (
+	"encoding/json"
 	"math/rand"
 	"runtime"
+
+	"evgen3000/go-musthave-metrics-tpl.git/internal/logger"
+	"go.uber.org/zap"
 )
 
 type Collector struct{}
 
+type Metrics struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
+func GenerateJSON(m Metrics) []byte {
+	body, err := json.Marshal(m)
+	if err != nil {
+		logger.GetLogger().Error("Conversion have errors:", zap.String("json:", err.Error()))
+	}
+	return body
+}
 func NewMetricsCollector() *Collector {
 	return &Collector{}
 }
 
-func (mc *Collector) CollectMetrics() map[string]float64 {
+func (mc *Collector) CollectMetrics() [][]byte {
 	memStats := new(runtime.MemStats)
 	runtime.ReadMemStats(memStats)
 
-	return map[string]float64{
+	metricsSlice := map[string]float64{
 		"Alloc":         float64(memStats.Alloc),
 		"BuckHashSys":   float64(memStats.BuckHashSys),
 		"Frees":         float64(memStats.Frees),
@@ -45,4 +63,9 @@ func (mc *Collector) CollectMetrics() map[string]float64 {
 		"TotalAlloc":    float64(memStats.TotalAlloc),
 		"RandomValue":   rand.Float64() * 100,
 	}
+	var jsonMetrics [][]byte
+	for metric, value := range metricsSlice {
+		jsonMetrics = append(jsonMetrics, GenerateJSON(Metrics{metric, "gauge", nil, &value}))
+	}
+	return jsonMetrics
 }

@@ -1,10 +1,10 @@
 package httpclient
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -16,19 +16,18 @@ func NewHTTPClient(host string) *HTTPClient {
 	return &HTTPClient{host: host}
 }
 
-func (hc *HTTPClient) SendMetrics(metricType, metricName string, value float64) {
-	metricValue := strconv.FormatFloat(value, 'f', -1, 64)
-	url := fmt.Sprintf("http://%s/update/%s/%s/%s", hc.host, metricType, metricName, metricValue)
+func (hc *HTTPClient) SendMetrics(data []byte) {
+	url := fmt.Sprintf("http://%s/update/", hc.host)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
 	}
-	req.Header.Set("Content-Type", "text/plain")
+	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -42,5 +41,5 @@ func (hc *HTTPClient) SendMetrics(metricType, metricName string, value float64) 
 		}
 	}()
 
-	fmt.Printf("Metrics %s (%s) with value %s sent successfully\n", metricName, metricType, metricValue)
+	fmt.Printf("Metrics %s sent successfully\n", string(data))
 }

@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -14,6 +15,13 @@ const (
 	MetricTypeCounter = "counter"
 	MetricTypeGauge   = "gauge"
 )
+
+type Metrics struct {
+	ID    string   `json:"id"`
+	MType string   `json:"type"`
+	Delta *int64   `json:"delta,omitempty"`
+	Value *float64 `json:"value,omitempty"`
+}
 
 type Handler struct {
 	storage *storage.MemStorage

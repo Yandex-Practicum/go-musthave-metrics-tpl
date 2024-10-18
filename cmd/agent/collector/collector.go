@@ -43,17 +43,16 @@ func (a *AgentConfig) Start(ctx context.Context) {
 		case <-pollTicker.C:
 			a.poolCount++
 			collectedMetrics := a.collector.CollectMetrics()
-			collectedMetrics["PoolCount"] = float64(a.poolCount)
+			collectedMetrics = append(collectedMetrics, metrics.GenerateJSON(metrics.Metrics{ID: "PoolCount", MType: "counter", Delta: &a.poolCount}))
 			fmt.Println("Metrics collected:", collectedMetrics)
 		case <-reportTicker.C:
 			collectedMetrics := a.collector.CollectMetrics()
-			collectedMetrics["PoolCount"] = float64(a.poolCount)
+			collectedMetrics = append(collectedMetrics, metrics.GenerateJSON(metrics.Metrics{ID: "PoolCount", MType: "counter", Delta: &a.poolCount}))
 			fmt.Println("Metrics collected for report:", collectedMetrics)
 
-			for name, value := range collectedMetrics {
-				a.httpClient.SendMetrics("gauge", name, value)
+			for _, data := range collectedMetrics {
+				a.httpClient.SendMetrics(data)
 			}
-			a.httpClient.SendMetrics("counter", "PoolCount", float64(a.poolCount))
 		}
 	}
 }

@@ -11,8 +11,8 @@ func SetupRouter(storage *storage.MemStorage) *chi.Mux {
 	h := handlers.NewHandler(storage)
 	chiRouter := chi.NewRouter()
 
-	chiRouter.Post("/update/{metricType}/{metricName}/{metricValue}", logger.HandlerLog(h.UpdateMetricHandler))
-	chiRouter.Get("/value/{metricType}/{metricName}", logger.HandlerLog(h.GetMetricHandler))
+	chiRouter.Post("/update/", logger.HandlerLog(h.UpdateMetricHandler))
+	chiRouter.Get("/value/", logger.HandlerLog(h.GetMetricHandler))
 	chiRouter.Get("/", logger.HandlerLog(h.HomeHandler))
 
 	return chiRouter
