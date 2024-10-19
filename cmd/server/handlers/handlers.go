@@ -52,6 +52,7 @@ func (h *Handler) HomeHandler(rw http.ResponseWriter, _ *http.Request) {
 
 func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) {
 	var body Metrics
+	rw.Header().Set("Content-Type", "application/json")
 
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
@@ -65,8 +66,8 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 		h.storage.SetGauge(body.ID, *body.Value)
 	default:
 		http.Error(rw, "Bad request", http.StatusBadRequest)
+		return
 	}
-	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 }
 
