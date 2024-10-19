@@ -107,6 +107,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 
 	if body.MType != MetricTypeGauge && body.MType != MetricTypeCounter {
 		http.Error(rw, "Invalid metric type", http.StatusBadRequest)
+		return
 	}
 
 	if body.MType == MetricTypeGauge {
@@ -114,27 +115,32 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
+			return
 		}
 
 		jsonBody, _ := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Value: &value})
 		_, err := rw.Write(jsonBody)
 		if err != nil {
 			log.Printf("Write failed: %v", err)
+			return
 		}
 	} else {
 		value, exists := h.storage.GetCounter(body.ID)
 		log.Println("Counter:", value)
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
+			return
 		}
 		jsonBody, err := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Delta: &value})
 
 		if err != nil {
 			log.Printf("Json write failed: %v", err)
+			return
 		}
 		_, err = rw.Write(jsonBody)
 		if err != nil {
 			log.Printf("Write failed: %v", err)
+			return
 		}
 	}
 }
