@@ -46,7 +46,7 @@ func (h *Handler) HomeHandler(rw http.ResponseWriter, _ *http.Request) {
 
 	_, err := rw.Write([]byte(body.String()))
 	if err != nil {
-		log.Printf("Write failed: %v", err)
+		http.Error(rw, "Write failed: %v", http.StatusBadRequest)
 	}
 }
 
@@ -121,7 +121,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 		jsonBody, _ := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Value: &value})
 		_, err := rw.Write(jsonBody)
 		if err != nil {
-			log.Printf("Write failed: %v", err)
+			http.Error(rw, "Write failed", http.StatusBadRequest)
 			return
 		}
 	} else {
@@ -134,12 +134,12 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 		jsonBody, err := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Delta: &value})
 
 		if err != nil {
-			log.Printf("Json write failed: %v", err)
+			http.Error(rw, "Json write failed:", http.StatusBadRequest)
 			return
 		}
 		_, err = rw.Write(jsonBody)
 		if err != nil {
-			log.Printf("Write failed: %v", err)
+			http.Error(rw, "Write failed", http.StatusBadRequest)
 			return
 		}
 	}
@@ -161,7 +161,7 @@ func (h *Handler) GetMetricHandlerText(rw http.ResponseWriter, r *http.Request) 
 		rw.Header().Set("Content-Type", "text/plain")
 		_, err := rw.Write([]byte(strconv.FormatFloat(value, 'f', -1, 64)))
 		if err != nil {
-			log.Printf("Write failed: %v", err)
+			http.Error(rw, "Write failed", http.StatusBadRequest)
 		}
 	} else {
 		value, exists := h.storage.GetCounter(metricName)
@@ -171,7 +171,7 @@ func (h *Handler) GetMetricHandlerText(rw http.ResponseWriter, r *http.Request) 
 		rw.Header().Set("Content-Type", "text/plain")
 		_, err := rw.Write([]byte(strconv.FormatInt(value, 10)))
 		if err != nil {
-			log.Printf("Write failed: %v", err)
+			http.Error(rw, "Write failed", http.StatusBadRequest)
 		}
 	}
 }
