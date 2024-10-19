@@ -113,7 +113,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 		}
-		rw.Header().Set("Content-type", "application/json")
+		rw.Header().Set("Content-Type", "application/json")
 		jsonBody, _ := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Value: &value})
 		_, err := rw.Write(jsonBody)
 		if err != nil {
@@ -124,7 +124,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 		}
-		rw.Header().Set("Content-type", "application/json")
+		rw.Header().Set("Content-Type", "application/json")
 		jsonBody, _ := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Delta: &value})
 		_, err := rw.Write(jsonBody)
 		if err != nil {
@@ -146,7 +146,7 @@ func (h *Handler) GetMetricHandlerText(rw http.ResponseWriter, r *http.Request) 
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 		}
-		rw.Header().Set("Content-type", "text/plain")
+		rw.Header().Set("Content-Type", "text/plain")
 		_, err := rw.Write([]byte(strconv.FormatFloat(value, 'f', -1, 64)))
 		if err != nil {
 			log.Printf("Write failed: %v", err)
@@ -156,7 +156,7 @@ func (h *Handler) GetMetricHandlerText(rw http.ResponseWriter, r *http.Request) 
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 		}
-		rw.Header().Set("Content-type", "text/plain")
+		rw.Header().Set("Content-Type", "text/plain")
 		_, err := rw.Write([]byte(strconv.FormatInt(value, 10)))
 		if err != nil {
 			log.Printf("Write failed: %v", err)
