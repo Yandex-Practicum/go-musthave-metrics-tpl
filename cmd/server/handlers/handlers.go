@@ -66,7 +66,7 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 	default:
 		http.Error(rw, "Bad request", http.StatusBadRequest)
 	}
-
+	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 }
 
@@ -97,7 +97,7 @@ func (h *Handler) UpdateMetricHandlerText(rw http.ResponseWriter, r *http.Reques
 
 func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) {
 	var body Metrics
-
+	rw.Header().Set("Content-Type", "application/json")
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
@@ -110,10 +110,11 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 
 	if body.MType == MetricTypeGauge {
 		value, exists := h.storage.GetGauge(body.ID)
+
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 		}
-		rw.Header().Set("Content-Type", "application/json")
+
 		jsonBody, _ := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Value: &value})
 		_, err := rw.Write(jsonBody)
 		if err != nil {
@@ -124,7 +125,6 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 		}
-		rw.Header().Set("Content-Type", "application/json")
 		jsonBody, _ := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Delta: &value})
 		_, err := rw.Write(jsonBody)
 		if err != nil {
