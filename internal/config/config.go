@@ -39,8 +39,8 @@ func GetAgentConfig() *AgentConfig {
 	reportIntervalEnv, isReportIntervalEnv := os.LookupEnv("REPORT_INTERVAL")
 	pollIntervalEnv, isPollIntervalEnv := os.LookupEnv("POLL_INTERVAL")
 
-	reportIntervalFlag := flag.Int("r", 5, "Report interval in seconds.")
-	pollIntervalFlag := flag.Int("p", 1, "Pool interval in seconds.")
+	reportIntervalFlag := flag.Int("r", 10, "Report interval in seconds.")
+	pollIntervalFlag := flag.Int("p", 2, "Pool interval in seconds.")
 	host := GetHost()
 
 	if host.IsEnv && isPollIntervalEnv && isReportIntervalEnv {
