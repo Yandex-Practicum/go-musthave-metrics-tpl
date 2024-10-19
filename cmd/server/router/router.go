@@ -17,7 +17,7 @@ func SetupRouter(storage *storage.MemStorage) *chi.Mux {
 	})
 
 	chiRouter.Route("/value", func(r chi.Router) {
-		r.Get("/", logger.HandlerLog(h.GetMetricHandlerJSON))
+		r.Post("/", logger.HandlerLog(h.GetMetricHandlerJSON))
 		r.Get("/{metricType}/{metricName}", logger.HandlerLog(h.GetMetricHandlerText))
 	})
 
