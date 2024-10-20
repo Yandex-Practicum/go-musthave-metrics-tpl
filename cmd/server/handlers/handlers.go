@@ -129,17 +129,14 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 			return
 		}
 	} else {
-		value, exists := h.storage.GetCounter(body.ID)
-		if !exists {
-			http.Error(rw, "Metric not found", http.StatusNotFound)
-			return
-		}
-		jsonBody, err := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Delta: &value})
+		value, _ := h.storage.GetCounter(body.ID)
 
+		jsonBody, err := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Delta: &value})
 		if err != nil {
 			http.Error(rw, "Json write failed:", http.StatusBadRequest)
 			return
 		}
+
 		_, err = rw.Write(jsonBody)
 		if err != nil {
 			http.Error(rw, "Write failed", http.StatusBadRequest)
