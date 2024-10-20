@@ -61,14 +61,18 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 	}
 	switch body.MType {
 	case MetricTypeCounter:
+		log.Println("Counter:", body.ID, body.Delta)
 		h.storage.IncrementCounter(body.ID, *body.Delta)
+		rw.WriteHeader(http.StatusOK)
+		return
 	case MetricTypeGauge:
 		h.storage.SetGauge(body.ID, *body.Value)
+		rw.WriteHeader(http.StatusOK)
+		return
 	default:
 		http.Error(rw, "Bad request", http.StatusBadRequest)
 		return
 	}
-	rw.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) UpdateMetricHandlerText(rw http.ResponseWriter, r *http.Request) {
@@ -126,7 +130,6 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 		}
 	} else {
 		value, exists := h.storage.GetCounter(body.ID)
-		log.Println("Counter:", body.ID, value)
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 			return
