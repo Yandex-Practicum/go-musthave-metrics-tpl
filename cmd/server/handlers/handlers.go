@@ -61,7 +61,7 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 	}
 	switch body.MType {
 	case MetricTypeCounter:
-		log.Println("Counter:", body.ID, body.Delta)
+		log.Println("Counter:", body.ID, *body.Delta)
 		h.storage.IncrementCounter(body.ID, *body.Delta)
 		rw.WriteHeader(http.StatusOK)
 		return
