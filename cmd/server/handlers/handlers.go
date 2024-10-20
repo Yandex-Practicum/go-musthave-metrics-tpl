@@ -126,7 +126,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 		}
 	} else {
 		value, exists := h.storage.GetCounter(body.ID)
-		log.Println("Counter:", value)
+		log.Println("Counter:", body.ID, value)
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 			return
