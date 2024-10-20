@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -59,6 +61,19 @@ func HandlerLog(h http.HandlerFunc) http.HandlerFunc {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
+		var requestBody []byte
+		if r.Body != nil {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				GetLogger().Error("Error reading request body", zap.Error(err))
+				http.Error(w, "Unable to read request body", http.StatusInternalServerError)
+				return
+			}
+			requestBody = bodyBytes
+
+			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		}
+
 		responseData := &responseData{
 			status: 0,
 			size:   0,
@@ -70,10 +85,13 @@ func HandlerLog(h http.HandlerFunc) http.HandlerFunc {
 		h.ServeHTTP(&lw, r)
 
 		duration := time.Since(start)
+		contentType := r.Header.Get("Content-Type")
 
 		GetLogger().Info("HTTP request",
 			zap.String("method", r.Method),
 			zap.String("url", r.URL.String()),
+			zap.String("Content-Type", contentType),
+			zap.String("body", string(requestBody)),
 			zap.Int("status", responseData.status),
 			zap.Int("size", responseData.size),
 			zap.Duration("duration", duration),
