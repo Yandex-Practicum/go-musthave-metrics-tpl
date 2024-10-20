@@ -70,19 +70,23 @@ func HandlerLog(h http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 			requestBody = bodyBytes
-
 			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
 
 		responseData := &responseData{
-			status: 0,
+			status: http.StatusOK,
 			size:   0,
 		}
 		lw := loggingResponseWriter{
 			ResponseWriter: w,
 			responseData:   responseData,
 		}
+
 		h.ServeHTTP(&lw, r)
+
+		if responseData.status == 0 {
+			responseData.status = http.StatusOK
+		}
 
 		duration := time.Since(start)
 		contentType := r.Header.Get("Content-Type")
