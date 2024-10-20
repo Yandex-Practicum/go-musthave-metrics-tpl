@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -61,13 +60,25 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 	}
 	switch body.MType {
 	case MetricTypeCounter:
-		log.Println("Counter:", body.ID, *body.Delta)
 		h.storage.IncrementCounter(body.ID, *body.Delta)
+		value, _ := h.storage.GetCounter(body.ID)
+
+		jsonBody, err := json.Marshal(Metrics{body.ID, body.MType, &value, nil})
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+		}
+		_, err = rw.Write(jsonBody)
 		rw.WriteHeader(http.StatusOK)
 		return
 	case MetricTypeGauge:
 		h.storage.SetGauge(body.ID, *body.Value)
-		rw.WriteHeader(http.StatusOK)
+		value, _ := h.storage.GetGauge(body.ID)
+
+		jsonBody, err := json.Marshal(Metrics{body.ID, body.MType, nil, &value})
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+		}
+		_, err = rw.Write(jsonBody)
 		return
 	default:
 		http.Error(rw, "Bad request", http.StatusBadRequest)
