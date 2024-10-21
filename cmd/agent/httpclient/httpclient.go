@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"fmt"
 	"net/http"
@@ -22,13 +23,25 @@ func (hc *HTTPClient) SendMetrics(data []byte) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	var buf bytes.Buffer
+	gzipWriter := gzip.NewWriter(&buf)
+	_, err := gzipWriter.Write(data)
+	if err != nil {
+		fmt.Println("Error compressing request:", err)
+		return
+	}
+	err = gzipWriter.Close()
+	if err != nil {
+		fmt.Println("Error closing gzip writer:", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &buf)
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-
+	req.Header.Set("Content-Encoding", "gzip")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
