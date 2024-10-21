@@ -18,14 +18,24 @@ func GzipMiddleware(next http.Handler) http.Handler {
 				http.Error(w, "Unable to read gzip data", http.StatusBadRequest)
 				return
 			}
-			defer gzipReader.Close()
+			defer func() {
+				err := gzipReader.Close()
+				if err != nil {
+					http.Error(w, "Unable to close gzip data", http.StatusBadRequest)
+				}
+			}()
 
 			r.Body = io.NopCloser(gzipReader)
 		}
 
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			gz := gzip.NewWriter(w)
-			defer gz.Close()
+			defer func() {
+				err := gz.Close()
+				if err != nil {
+					http.Error(w, "Unable to close gzip data", http.StatusBadRequest)
+				}
+			}()
 
 			w.Header().Set("Content-Encoding", "gzip")
 			w.Header().Set("Vary", "Accept-Encoding")
