@@ -57,8 +57,8 @@ func GetLogger() *zap.Logger {
 	return loggerInstance
 }
 
-func HandlerLog(h http.HandlerFunc) http.HandlerFunc {
-	logFn := func(w http.ResponseWriter, r *http.Request) {
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
 		var requestBody []byte
@@ -82,7 +82,7 @@ func HandlerLog(h http.HandlerFunc) http.HandlerFunc {
 			responseData:   responseData,
 		}
 
-		h.ServeHTTP(&lw, r)
+		next.ServeHTTP(&lw, r)
 
 		if responseData.status == 0 {
 			responseData.status = http.StatusOK
@@ -100,6 +100,5 @@ func HandlerLog(h http.HandlerFunc) http.HandlerFunc {
 			zap.Int("size", responseData.size),
 			zap.Duration("duration", duration),
 		)
-	}
-	return http.HandlerFunc(logFn)
+	})
 }
