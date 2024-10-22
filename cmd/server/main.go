@@ -11,10 +11,10 @@ import (
 	"go.uber.org/zap"
 )
 
-func runServer(host string, router *chi.Mux) {
+func runServer(config *config.ServerConfig, router *chi.Mux) {
 	logger := log.GetLogger()
-	logger.Info("server is running on", zap.String("host", host))
-	err := http.ListenAndServe(host, router)
+	logger.Info("server is running on", zap.String("host", config.Host))
+	err := http.ListenAndServe(config.Host, router)
 	if err != nil {
 		logger.Fatal("Error", zap.String("Error", err.Error()))
 	}
@@ -22,11 +22,11 @@ func runServer(host string, router *chi.Mux) {
 
 func main() {
 	log.InitLogger()
-	c := config.GetHost()
+	c := config.GetServerConfig()
 	s := storage.NewMemStorage()
 	r := router.SetupRouter(s)
 
-	runServer(c.Value, r)
+	runServer(c, r)
 }
 
 // curl -X POST http://localhost:8080/update/gauges/myGauge/3.14159 -H "Content-Type: text/plain"
