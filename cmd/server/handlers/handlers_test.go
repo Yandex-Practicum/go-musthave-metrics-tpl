@@ -10,8 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var StorageConfig = storage.MemStorageConfig{
+	StoreInterval:   300,
+	FileStoragePath: "storage.json",
+	Restore:         true,
+}
+
 func TestUpdateHandlerGaugeSuccess(t *testing.T) {
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(StorageConfig)
 	r := router.SetupRouter(s)
 
 	req := httptest.NewRequest(http.MethodPost, "/update/gauge/temperature/23.5", nil)
@@ -28,7 +34,7 @@ func TestUpdateHandlerGaugeSuccess(t *testing.T) {
 }
 
 func TestUpdateHandlerCounterSuccess(t *testing.T) {
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(StorageConfig)
 	r := router.SetupRouter(s)
 
 	req := httptest.NewRequest(http.MethodPost, "/update/counter/hits/10", nil)
@@ -45,7 +51,7 @@ func TestUpdateHandlerCounterSuccess(t *testing.T) {
 }
 
 func TestUpdateHandlerInvalidMetricType(t *testing.T) {
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(StorageConfig)
 	r := router.SetupRouter(s)
 
 	req := httptest.NewRequest(http.MethodPost, "/update/unknown/temperature/23.5", nil)
@@ -58,7 +64,7 @@ func TestUpdateHandlerInvalidMetricType(t *testing.T) {
 }
 
 func TestGetHandlerGaugeSuccess(t *testing.T) {
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(StorageConfig)
 	r := router.SetupRouter(s)
 	s.SetGauge("temperature", 23.5)
 
@@ -72,7 +78,7 @@ func TestGetHandlerGaugeSuccess(t *testing.T) {
 }
 
 func TestGetHandlerCounterSuccess(t *testing.T) {
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(StorageConfig)
 	r := router.SetupRouter(s)
 	s.IncrementCounter("hits", 10)
 
@@ -86,7 +92,7 @@ func TestGetHandlerCounterSuccess(t *testing.T) {
 }
 
 func TestGetHandlerMetricNotFound(t *testing.T) {
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(StorageConfig)
 	r := router.SetupRouter(s)
 
 	req := httptest.NewRequest(http.MethodGet, "/value/gauge/unknown", nil)
@@ -98,7 +104,7 @@ func TestGetHandlerMetricNotFound(t *testing.T) {
 }
 
 func TestHomeHandle(t *testing.T) {
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(StorageConfig)
 	r := router.SetupRouter(s)
 	s.SetGauge("temperature", 23.5)
 	s.IncrementCounter("hits", 10)
