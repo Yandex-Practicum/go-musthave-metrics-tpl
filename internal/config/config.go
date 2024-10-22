@@ -45,8 +45,6 @@ func GetServerConfig() *ServerConfig {
 	restoreFlag := flag.Bool("r", true, "Restore stored configuration.")
 	host := GetHost()
 
-	flag.Parse()
-
 	storeIntervalEnv, isStoreIntervalEnv := os.LookupEnv("STORE_INTERVAL")
 	filePathEnv, isFilePathEnv := os.LookupEnv("FILE_STORAGE_PATH")
 	restoreEnv, isRestoreEnv := os.LookupEnv("RESTORE")
