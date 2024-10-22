@@ -5,10 +5,20 @@ import (
 	"log"
 	"os"
 	"strconv"
+
+	"evgen3000/go-musthave-metrics-tpl.git/internal/logger"
 )
 
+type ServerConfig struct {
+	Host          string
+	StoreInterval int
+	FilePath      string
+	Restore       bool
+	IsEnv         bool
+}
+
 type HostConfig struct {
-	Value string
+	Host  string
 	IsEnv bool
 }
 
@@ -19,13 +29,52 @@ func GetHost() *HostConfig {
 	env, isEnv := os.LookupEnv("ADDRESS")
 	if isEnv {
 		return &HostConfig{
-			Value: env,
+			Host:  env,
 			IsEnv: isEnv,
 		}
 	}
 	return &HostConfig{
-		Value: *hostFlag,
+		Host:  *hostFlag,
 		IsEnv: false,
+	}
+}
+
+func GetServerConfig() *ServerConfig {
+	soreIntervalFlag := flag.Int("i", 300, "Store interval in sec.")
+	filePathFlag := flag.String("f", "./", "File storage location.")
+	restoreFlag := flag.Bool("r", true, "Restore stored configuration.")
+	host := GetHost()
+
+	flag.Parse()
+
+	storeIntervalEnv, isStoreIntervalEnv := os.LookupEnv("STORE_INTERVAL")
+	filePathEnv, isFilePathEnv := os.LookupEnv("FILE_STORAGE_PATH")
+	restoreEnv, isRestoreEnv := os.LookupEnv("RESTORE")
+
+	if host.IsEnv && isStoreIntervalEnv && isFilePathEnv && isRestoreEnv {
+		soreInterval, err := strconv.Atoi(storeIntervalEnv)
+		if err != nil {
+			logger.GetLogger().Fatal("Can't implement STORE_INTERVAL for code")
+		}
+
+		restore, err := strconv.ParseBool(restoreEnv)
+		if err != nil {
+			logger.GetLogger().Fatal("Can't implement RESTORE for code")
+		}
+		return &ServerConfig{
+			Host:          host.Host,
+			FilePath:      filePathEnv,
+			StoreInterval: soreInterval,
+			Restore:       restore,
+			IsEnv:         true,
+		}
+	}
+	return &ServerConfig{
+		Host:          host.Host,
+		FilePath:      *filePathFlag,
+		StoreInterval: *soreIntervalFlag,
+		Restore:       *restoreFlag,
+		IsEnv:         false,
 	}
 }
 
@@ -56,12 +105,12 @@ func GetAgentConfig() *AgentConfig {
 		return &AgentConfig{
 			PoolInterval:   pollInterval,
 			ReportInterval: reportInterval,
-			Host:           host.Value,
+			Host:           host.Host,
 		}
 	}
 	return &AgentConfig{
 		PoolInterval:   int64(*pollIntervalFlag),
 		ReportInterval: int64(*reportIntervalFlag),
-		Host:           host.Value,
+		Host:           host.Host,
 	}
 }
