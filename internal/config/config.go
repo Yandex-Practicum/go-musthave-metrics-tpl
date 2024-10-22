@@ -77,7 +77,7 @@ func GetAgentConfig() *AgentConfig {
 	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
 
 	host := getStringValue("ADDRESS", *hostFlag)
-	pollInterval := getIntValue("POOL_INTERVAL", *pollIntervalFlag)
+	pollInterval := getIntValue("POLL_INTERVAL", *pollIntervalFlag)
 	reportInterval := getIntValue("REPORT_INTERVAL", *reportIntervalFlag)
 
 	return &AgentConfig{
