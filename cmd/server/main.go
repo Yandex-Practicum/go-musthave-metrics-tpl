@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
@@ -23,11 +24,25 @@ func runServer(config *config.ServerConfig, router *chi.Mux) {
 func main() {
 	log.InitLogger()
 	c := config.GetServerConfig()
-	s := storage.NewMemStorage()
+	s := storage.NewMemStorage(storage.MemStorageConfig{
+		StoreInterval:   c.StoreInterval,
+		FileStoragePath: c.FilePath,
+		Restore:         c.Restore,
+	})
+
 	r := router.SetupRouter(s)
+
+	ticker := time.NewTicker(time.Duration(c.StoreInterval) * time.Second)
+	defer ticker.Stop()
+	go func() {
+		for range ticker.C {
+			if err := s.SaveData(c.FilePath); err != nil {
+				log.GetLogger().Fatal("Can't to save data", zap.Error(err))
+			} else {
+				log.GetLogger().Info("Saved data")
+			}
+		}
+	}()
 
 	runServer(c, r)
 }
-
-// curl -X POST http://localhost:8080/update/gauges/myGauge/3.14159 -H "Content-Type: text/plain"
-// curl -X POST http://localhost:8080/update/counter/myGauge/5 -H "Content-Type: text/plain"

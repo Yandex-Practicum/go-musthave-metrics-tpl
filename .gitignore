@@ -1,4 +1,5 @@
 cmd/server/app.log
+cmd/server/storage.json
 
 # CovCode
 coverage.txt

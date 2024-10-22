@@ -1,39 +1,102 @@
 package storage
 
+import (
+	"encoding/json"
+	"io"
+	"os"
+
+	"evgen3000/go-musthave-metrics-tpl.git/internal/logger"
+	"go.uber.org/zap"
+)
+
 type MemStorage struct {
-	gauges   map[string]float64
-	counters map[string]int64
+	Gauges   map[string]float64 `json:"gauges"`
+	Counters map[string]int64   `json:"counters"`
 }
 
-func NewMemStorage() *MemStorage {
+type MemStorageConfig struct {
+	StoreInterval   int
+	FileStoragePath string
+	Restore         bool
+}
+
+func (m *MemStorage) SaveData(filePath string) error {
+	data := map[string]interface{}{
+		"gauges":   m.Gauges,
+		"counters": m.Counters,
+	}
+
+	fileData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filePath, fileData, 0644)
+}
+
+func NewMemStorage(config MemStorageConfig) *MemStorage {
+	if config.Restore {
+		file, err := os.OpenFile(config.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
+		defer func() {
+			err := file.Close()
+			if err != nil {
+				logger.GetLogger().Fatal("Failed to close file", zap.Error(err))
+			}
+		}()
+
+		if err != nil {
+			logger.GetLogger().Fatal("Can't open file.", zap.Error(err))
+		}
+
+		fileData, err := io.ReadAll(file)
+		if err != nil {
+			logger.GetLogger().Fatal("Can't read file.", zap.Error(err))
+		}
+		if len(fileData) == 0 {
+			logger.GetLogger().Info("Storage file is empty, nothing to load.", zap.String("file", config.FileStoragePath))
+			return &MemStorage{
+				Gauges:   make(map[string]float64),
+				Counters: make(map[string]int64),
+			}
+		}
+
+		var storage MemStorage
+
+		err = json.Unmarshal(fileData, &storage)
+		if err != nil {
+			logger.GetLogger().Fatal("Can't read json.", zap.Error(err))
+		}
+		return &storage
+	}
+
 	return &MemStorage{
-		gauges:   make(map[string]float64),
-		counters: make(map[string]int64),
+		Gauges:   make(map[string]float64),
+		Counters: make(map[string]int64),
 	}
 }
 
 func (m *MemStorage) SetGauge(metricName string, value float64) {
-	m.gauges[metricName] = value
+	m.Gauges[metricName] = value
 }
 
 func (m *MemStorage) IncrementCounter(metricName string, value int64) {
-	m.counters[metricName] += value
+	m.Counters[metricName] += value
 }
 
 func (m *MemStorage) GetGauge(metricName string) (float64, bool) {
-	value, exists := m.gauges[metricName]
+	value, exists := m.Gauges[metricName]
 	return value, exists
 }
 
 func (m *MemStorage) GetCounter(metricName string) (int64, bool) {
-	value, exists := m.counters[metricName]
+	value, exists := m.Counters[metricName]
 	return value, exists
 }
 
 func (m *MemStorage) GetAllGauges() map[string]float64 {
-	return m.gauges
+	return m.Gauges
 }
 
 func (m *MemStorage) GetAllCounters() map[string]int64 {
-	return m.counters
+	return m.Counters
 }
