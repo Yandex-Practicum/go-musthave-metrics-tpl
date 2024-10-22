@@ -13,11 +13,6 @@ type ServerConfig struct {
 	Restore       bool
 }
 
-type HostConfig struct {
-	Host  string
-	IsEnv bool
-}
-
 func getStringValue(envKey string, flagValue string) string {
 	if value, ok := os.LookupEnv(envKey); ok {
 		return value
