@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/agent/collector"
-	"evgen3000/go-musthave-metrics-tpl.git/internal/config"
+	config "evgen3000/go-musthave-metrics-tpl.git/internal/config/agent"
 )
 
 func main() {

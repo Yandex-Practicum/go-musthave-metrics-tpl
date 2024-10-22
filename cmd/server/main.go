@@ -6,13 +6,13 @@ import (
 
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
-	"evgen3000/go-musthave-metrics-tpl.git/internal/config"
+	"evgen3000/go-musthave-metrics-tpl.git/internal/config/server"
 	log "evgen3000/go-musthave-metrics-tpl.git/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
-func runServer(config *config.ServerConfig, router *chi.Mux) {
+func runServer(config *server.Config, router *chi.Mux) {
 	logger := log.GetLogger()
 	logger.Info("server is running on", zap.String("host", config.Host))
 	err := http.ListenAndServe(config.Host, router)
@@ -23,7 +23,7 @@ func runServer(config *config.ServerConfig, router *chi.Mux) {
 
 func main() {
 	log.InitLogger()
-	c := config.GetServerConfig()
+	c := server.GetServerConfig()
 	s := storage.NewMemStorage(storage.MemStorageConfig{
 		StoreInterval:   c.StoreInterval,
 		FileStoragePath: c.FilePath,
