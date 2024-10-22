@@ -20,15 +20,10 @@ func GetServerConfig() *Config {
 	restoreFlag := flag.Bool("r", true, "Restore stored configuration.")
 	flag.Parse()
 
-	storeInterval := utils.GetIntValue("STORE_INTERVAL", *storeIntervalFlag)
-	filPath := utils.GetStringValue("FILE_STORE_PATH", *filePathFlag)
-	restore := utils.GetBoolValue("RESTORE", *restoreFlag)
-	host := utils.GetStringValue("ADDRESS", *hostFlag)
-
 	return &Config{
-		Host:          host,
-		FilePath:      filPath,
-		StoreInterval: storeInterval,
-		Restore:       restore,
+		Host:          utils.GetStringValue("ADDRESS", *hostFlag),
+		FilePath:      utils.GetStringValue("FILE_STORE_PATH", *filePathFlag),
+		StoreInterval: utils.GetIntValue("STORE_INTERVAL", *storeIntervalFlag),
+		Restore:       utils.GetBoolValue("RESTORE", *restoreFlag),
 	}
 }

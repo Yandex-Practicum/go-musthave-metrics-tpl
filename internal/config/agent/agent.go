@@ -16,14 +16,11 @@ func GetAgentConfig() *Config {
 	reportIntervalFlag := flag.Int("r", 10, "Report interval in seconds.")
 	pollIntervalFlag := flag.Int("p", 2, "Pool interval in seconds.")
 	hostFlag := flag.String("a", "localhost:8080", "Host IP address and port.")
-
-	host := utils.GetStringValue("ADDRESS", *hostFlag)
-	pollInterval := utils.GetIntValue("POLL_INTERVAL", *pollIntervalFlag)
-	reportInterval := utils.GetIntValue("REPORT_INTERVAL", *reportIntervalFlag)
+	flag.Parse()
 
 	return &Config{
-		PoolInterval:   pollInterval,
-		ReportInterval: reportInterval,
-		Host:           host,
+		PoolInterval:   utils.GetIntValue("POLL_INTERVAL", *pollIntervalFlag),
+		ReportInterval: utils.GetIntValue("REPORT_INTERVAL", *reportIntervalFlag),
+		Host:           utils.GetStringValue("ADDRESS", *hostFlag),
 	}
 }
