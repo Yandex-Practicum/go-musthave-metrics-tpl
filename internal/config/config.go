@@ -41,7 +41,7 @@ func GetHost() *HostConfig {
 
 func GetServerConfig() *ServerConfig {
 	soreIntervalFlag := flag.Int("i", 300, "Store interval in sec.")
-	filePathFlag := flag.String("f", "./", "File storage location.")
+	filePathFlag := flag.String("f", "storage.json", "File storage location.")
 	restoreFlag := flag.Bool("r", true, "Restore stored configuration.")
 	host := GetHost()
 
