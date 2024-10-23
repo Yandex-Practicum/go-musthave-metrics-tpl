@@ -35,14 +35,14 @@ func TestLoggingMiddleware(t *testing.T) {
 	wrappedHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
-	body, _ := io.ReadAll(resp.Body)
-
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
 			panic(err)
 		}
 	}()
+
+	body, _ := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code to be 200")
 	assert.Equal(t, "OK", string(body), "Expected response body to be 'OK'")
@@ -69,5 +69,13 @@ func TestLoggingMiddleware_RequestBodyLogging(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Result().StatusCode, "Expected status code to be 200")
+	resp := w.Result()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code to be 200")
 }
