@@ -52,6 +52,12 @@ func TestLoggingMiddleware_RequestBodyLogging(t *testing.T) {
 	logger.InitLogger()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			err := r.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+		}()
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	})
@@ -63,11 +69,5 @@ func TestLoggingMiddleware_RequestBodyLogging(t *testing.T) {
 
 	wrappedHandler.ServeHTTP(w, req)
 
-	defer func() {
-		err := req.Body.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 	assert.Equal(t, http.StatusOK, w.Result().StatusCode, "Expected status code to be 200")
 }
