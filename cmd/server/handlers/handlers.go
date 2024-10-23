@@ -23,7 +23,7 @@ type Metrics struct {
 }
 
 type Handler struct {
-	storage *storage.MemStorage
+	Storage *storage.MemStorage
 }
 
 func NewHandler(storage *storage.MemStorage) *Handler {
@@ -33,12 +33,12 @@ func NewHandler(storage *storage.MemStorage) *Handler {
 func (h *Handler) HomeHandler(rw http.ResponseWriter, _ *http.Request) {
 	var body strings.Builder
 	body.WriteString("<h4>Gauges</h4>")
-	for gaugeName, value := range h.storage.GetAllGauges() {
+	for gaugeName, value := range h.Storage.GetAllGauges() {
 		body.WriteString(gaugeName + ": " + strconv.FormatFloat(value, 'f', -1, 64) + "</br>")
 	}
 	body.WriteString("<h4>Counters</h4>")
 
-	for counterName, value := range h.storage.GetAllCounters() {
+	for counterName, value := range h.Storage.GetAllCounters() {
 		body.WriteString(counterName + ": " + strconv.FormatInt(value, 10) + "</br>")
 	}
 	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -60,8 +60,8 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 	}
 	switch body.MType {
 	case MetricTypeCounter:
-		h.storage.IncrementCounter(body.ID, *body.Delta)
-		value, _ := h.storage.GetCounter(body.ID)
+		h.Storage.IncrementCounter(body.ID, *body.Delta)
+		value, _ := h.Storage.GetCounter(body.ID)
 
 		jsonBody, err := json.Marshal(Metrics{body.ID, body.MType, &value, nil})
 		if err != nil {
@@ -71,8 +71,8 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 		rw.WriteHeader(http.StatusOK)
 		return
 	case MetricTypeGauge:
-		h.storage.SetGauge(body.ID, *body.Value)
-		value, _ := h.storage.GetGauge(body.ID)
+		h.Storage.SetGauge(body.ID, *body.Value)
+		value, _ := h.Storage.GetGauge(body.ID)
 
 		jsonBody, err := json.Marshal(Metrics{body.ID, body.MType, nil, &value})
 		if err != nil {
@@ -97,13 +97,13 @@ func (h *Handler) UpdateMetricHandlerText(rw http.ResponseWriter, r *http.Reques
 		if err != nil {
 			http.Error(rw, "Bad request", http.StatusBadRequest)
 		}
-		h.storage.IncrementCounter(metricName, value)
+		h.Storage.IncrementCounter(metricName, value)
 	case MetricTypeGauge:
 		value, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
 			http.Error(rw, "Bad request", http.StatusBadRequest)
 		}
-		h.storage.SetGauge(metricName, value)
+		h.Storage.SetGauge(metricName, value)
 	default:
 		http.Error(rw, "Bad request", http.StatusBadRequest)
 	}
@@ -126,7 +126,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 	}
 
 	if body.MType == MetricTypeGauge {
-		value, exists := h.storage.GetGauge(body.ID)
+		value, exists := h.Storage.GetGauge(body.ID)
 
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
@@ -140,7 +140,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 			return
 		}
 	} else {
-		value, exists := h.storage.GetCounter(body.ID)
+		value, exists := h.Storage.GetCounter(body.ID)
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 			return
@@ -168,7 +168,7 @@ func (h *Handler) GetMetricHandlerText(rw http.ResponseWriter, r *http.Request) 
 	}
 
 	if metricType == MetricTypeGauge {
-		value, exists := h.storage.GetGauge(metricName)
+		value, exists := h.Storage.GetGauge(metricName)
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 		}
@@ -178,7 +178,7 @@ func (h *Handler) GetMetricHandlerText(rw http.ResponseWriter, r *http.Request) 
 			http.Error(rw, "Write failed", http.StatusBadRequest)
 		}
 	} else {
-		value, exists := h.storage.GetCounter(metricName)
+		value, exists := h.Storage.GetCounter(metricName)
 		if !exists {
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 		}
