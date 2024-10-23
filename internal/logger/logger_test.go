@@ -48,22 +48,6 @@ func TestLoggingMiddleware(t *testing.T) {
 	assert.Equal(t, "OK", string(body), "Expected response body to be 'OK'")
 }
 
-//func TestLoggingResponseWriter(t *testing.T) {
-//	response := httptest.NewRecorder()
-//	responseData := &logger.responseData{}
-//	lw := logger.loggingResponseWriter{
-//		ResponseWriter: response,
-//		responseData:   responseData,
-//	}
-//
-//	body := []byte("response body")
-//	size, err := lw.Write(body)
-//
-//	assert.NoError(t, err, "Expected no error writing response body")
-//	assert.Equal(t, len(body), size, "Expected written size to match body length")
-//	assert.Equal(t, len(body), lw.responseData.size, "Expected responseData size to match body length")
-//}
-
 func TestLoggingMiddleware_RequestBodyLogging(t *testing.T) {
 	logger.InitLogger()
 
