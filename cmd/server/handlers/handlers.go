@@ -68,6 +68,9 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 		}
 		_, err = rw.Write(jsonBody)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+		}
 		rw.WriteHeader(http.StatusOK)
 		return
 	case MetricTypeGauge:
@@ -79,6 +82,9 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 		}
 		_, err = rw.Write(jsonBody)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+		}
 		return
 	default:
 		http.Error(rw, "Bad request", http.StatusBadRequest)
