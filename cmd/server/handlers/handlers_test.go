@@ -9,6 +9,7 @@ import (
 
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/handlers"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
+	"evgen3000/go-musthave-metrics-tpl.git/internal/dto"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +40,7 @@ func TestUpdateMetricHandlerJSON(t *testing.T) {
 	h := setupHandler()
 
 	// Test for Counter metric
-	counterMetric := handlers.Metrics{
+	counterMetric := dto.MetricsDTO{
 		ID:    "test_counter",
 		MType: handlers.MetricTypeCounter,
 		Delta: new(int64),
@@ -59,7 +60,7 @@ func TestUpdateMetricHandlerJSON(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "42")
 
 	// Test for Gauge metric
-	gaugeMetric := handlers.Metrics{
+	gaugeMetric := dto.MetricsDTO{
 		ID:    "test_gauge",
 		MType: handlers.MetricTypeGauge,
 		Value: new(float64),
@@ -108,7 +109,7 @@ func TestGetMetricHandlerJSON(t *testing.T) {
 
 	h.Storage.SetGauge("test_gauge", 3.14)
 
-	metric := handlers.Metrics{
+	metric := dto.MetricsDTO{
 		ID:    "test_gauge",
 		MType: handlers.MetricTypeGauge,
 	}

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
+	"evgen3000/go-musthave-metrics-tpl.git/internal/dto"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -14,13 +15,6 @@ const (
 	MetricTypeCounter = "counter"
 	MetricTypeGauge   = "gauge"
 )
-
-type Metrics struct {
-	ID    string   `json:"id"`
-	MType string   `json:"type"`
-	Delta *int64   `json:"delta,omitempty"`
-	Value *float64 `json:"value,omitempty"`
-}
 
 type Handler struct {
 	Storage *storage.MemStorage
@@ -50,7 +44,7 @@ func (h *Handler) HomeHandler(rw http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) {
-	var body Metrics
+	var body dto.MetricsDTO
 	rw.Header().Set("Content-Type", "application/json")
 
 	err := json.NewDecoder(r.Body).Decode(&body)
@@ -63,7 +57,7 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 		h.Storage.IncrementCounter(body.ID, *body.Delta)
 		value, _ := h.Storage.GetCounter(body.ID)
 
-		jsonBody, err := json.Marshal(Metrics{body.ID, body.MType, &value, nil})
+		jsonBody, err := json.Marshal(dto.MetricsDTO{body.ID, body.MType, &value, nil})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 		}
@@ -77,7 +71,7 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 		h.Storage.SetGauge(body.ID, *body.Value)
 		value, _ := h.Storage.GetGauge(body.ID)
 
-		jsonBody, err := json.Marshal(Metrics{body.ID, body.MType, nil, &value})
+		jsonBody, err := json.Marshal(dto.MetricsDTO{ID: body.ID, MType: body.MType, Value: &value})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 		}
@@ -118,7 +112,7 @@ func (h *Handler) UpdateMetricHandlerText(rw http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) {
-	var body Metrics
+	var body dto.MetricsDTO
 	rw.Header().Set("Content-Type", "application/json")
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
@@ -139,7 +133,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		jsonBody, _ := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Value: &value})
+		jsonBody, _ := json.Marshal(dto.MetricsDTO{ID: body.ID, MType: body.MType, Value: &value})
 		_, err := rw.Write(jsonBody)
 		if err != nil {
 			http.Error(rw, "Write failed", http.StatusBadRequest)
@@ -151,7 +145,7 @@ func (h *Handler) GetMetricHandlerJSON(rw http.ResponseWriter, r *http.Request) 
 			http.Error(rw, "Metric not found", http.StatusNotFound)
 			return
 		}
-		jsonBody, err := json.Marshal(Metrics{ID: body.ID, MType: body.MType, Delta: &value})
+		jsonBody, err := json.Marshal(dto.MetricsDTO{ID: body.ID, MType: body.MType, Delta: &value})
 		if err != nil {
 			http.Error(rw, "Json write failed:", http.StatusBadRequest)
 			return

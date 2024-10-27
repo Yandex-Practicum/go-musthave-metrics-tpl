@@ -5,18 +5,13 @@ import (
 	"log"
 	"math/rand"
 	"runtime"
+
+	"evgen3000/go-musthave-metrics-tpl.git/internal/dto"
 )
 
 type Collector struct{}
 
-type Metrics struct {
-	ID    string   `json:"id"`
-	MType string   `json:"type"`
-	Delta *int64   `json:"delta,omitempty"`
-	Value *float64 `json:"value,omitempty"`
-}
-
-func GenerateJSON(m Metrics) []byte {
+func GenerateJSON(m dto.MetricsDTO) []byte {
 	body, err := json.Marshal(m)
 	if err != nil {
 		log.Fatal("Conversion have errors:", err.Error())
@@ -63,7 +58,7 @@ func (mc *Collector) CollectMetrics() [][]byte {
 	}
 	var jsonMetrics [][]byte
 	for metric, value := range metricsSlice {
-		jsonMetrics = append(jsonMetrics, GenerateJSON(Metrics{metric, "gauge", nil, &value}))
+		jsonMetrics = append(jsonMetrics, GenerateJSON(dto.MetricsDTO{ID: metric, MType: "gauge", Value: &value}))
 	}
 	return jsonMetrics
 }
