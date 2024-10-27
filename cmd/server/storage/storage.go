@@ -3,9 +3,9 @@ package storage
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"os"
 
-	"evgen3000/go-musthave-metrics-tpl.git/internal/logger"
 	"go.uber.org/zap"
 )
 
@@ -40,20 +40,20 @@ func NewMemStorage(config MemStorageConfig) *MemStorage {
 		defer func() {
 			err := file.Close()
 			if err != nil {
-				logger.GetLogger().Fatal("Failed to close file", zap.Error(err))
+				log.Fatal("Failed to close file", zap.Error(err))
 			}
 		}()
 
 		if err != nil {
-			logger.GetLogger().Fatal("Can't open file.", zap.Error(err))
+			log.Fatal("Can't open file.", zap.Error(err))
 		}
 
 		fileData, err := io.ReadAll(file)
 		if err != nil {
-			logger.GetLogger().Fatal("Can't read file.", zap.Error(err))
+			log.Fatal("Can't read file.", zap.Error(err))
 		}
 		if len(fileData) == 0 {
-			logger.GetLogger().Info("Storage file is empty, nothing to load.", zap.String("file", config.FileStoragePath))
+			log.Println("Storage file is empty, nothing to load.", zap.String("file", config.FileStoragePath))
 			return &MemStorage{
 				Gauges:   make(map[string]float64),
 				Counters: make(map[string]int64),
@@ -64,7 +64,7 @@ func NewMemStorage(config MemStorageConfig) *MemStorage {
 
 		err = json.Unmarshal(fileData, &storage)
 		if err != nil {
-			logger.GetLogger().Fatal("Can't read json.", zap.Error(err))
+			log.Fatal("Can't read json.", zap.Error(err))
 		}
 		return &storage
 	}

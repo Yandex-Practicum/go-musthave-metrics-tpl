@@ -1,19 +1,20 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"time"
 
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"evgen3000/go-musthave-metrics-tpl.git/internal/config/server"
-	log "evgen3000/go-musthave-metrics-tpl.git/internal/logger"
+	httpLogger "evgen3000/go-musthave-metrics-tpl.git/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
 func runServer(config *server.Config, router *chi.Mux) {
-	logger := log.GetLogger()
+	logger := httpLogger.InitLogger()
 	logger.Info("server is running on", zap.String("host", config.Host))
 	err := http.ListenAndServe(config.Host, router)
 	if err != nil {
@@ -22,7 +23,6 @@ func runServer(config *server.Config, router *chi.Mux) {
 }
 
 func main() {
-	log.InitLogger()
 	c := server.GetServerConfig()
 	s := storage.NewMemStorage(storage.MemStorageConfig{
 		StoreInterval:   c.StoreInterval,
@@ -37,9 +37,9 @@ func main() {
 	go func() {
 		for range ticker.C {
 			if err := s.SaveData(c.FilePath); err != nil {
-				log.GetLogger().Fatal("Can't to save data", zap.Error(err))
+				log.Fatal("Can't to save data", zap.Error(err))
 			} else {
-				log.GetLogger().Info("Saved data")
+				log.Println("Saved data")
 			}
 		}
 	}()
