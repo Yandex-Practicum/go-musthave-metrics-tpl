@@ -57,7 +57,7 @@ func (h *Handler) UpdateMetricHandlerJSON(rw http.ResponseWriter, r *http.Reques
 		h.Storage.IncrementCounter(body.ID, *body.Delta)
 		value, _ := h.Storage.GetCounter(body.ID)
 
-		jsonBody, err := json.Marshal(dto.MetricsDTO{body.ID, body.MType, &value, nil})
+		jsonBody, err := json.Marshal(dto.MetricsDTO{ID: body.ID, MType: body.MType, Delta: &value})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 		}
