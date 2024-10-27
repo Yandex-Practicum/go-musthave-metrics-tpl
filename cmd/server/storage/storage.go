@@ -81,13 +81,13 @@ func loadData(filePath string, storage *MemStorage) error {
 	}
 	if len(fileData) == 0 {
 		log.Println("Storage file is empty, nothing to load.")
-	} else {
-		err = json.Unmarshal(fileData, &storage)
-		if err != nil {
-			log.Fatal("Can't read json.", err.Error())
-		}
+		return nil
 	}
 
+	err = json.Unmarshal(fileData, &storage)
+	if err != nil {
+		log.Fatal("Can't read json.", err.Error())
+	}
 	return nil
 }
 
