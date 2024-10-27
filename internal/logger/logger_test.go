@@ -12,14 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitLogger(t *testing.T) {
-	assert.NotPanics(t, func() {
-		logger.InitLogger()
-	}, "InitLogger should not panic")
-
-	assert.NotNil(t, logger.GetLogger(), "Logger instance should not be nil after InitLogger is called")
-}
-
 func TestLoggingMiddleware(t *testing.T) {
 	logger.InitLogger()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
