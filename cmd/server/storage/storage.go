@@ -5,8 +5,6 @@ import (
 	"io"
 	"log"
 	"os"
-
-	"go.uber.org/zap"
 )
 
 type MemStorage struct {
@@ -18,61 +16,6 @@ type MemStorageConfig struct {
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool
-}
-
-func (m *MemStorage) SaveData(filePath string) error {
-	data := map[string]interface{}{
-		"gauges":   m.Gauges,
-		"counters": m.Counters,
-	}
-
-	fileData, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(filePath, fileData, 0644)
-}
-
-func NewMemStorage(config MemStorageConfig) *MemStorage {
-	if config.Restore {
-		file, err := os.OpenFile(config.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
-		defer func() {
-			err := file.Close()
-			if err != nil {
-				log.Fatal("Failed to close file", zap.Error(err))
-			}
-		}()
-
-		if err != nil {
-			log.Fatal("Can't open file.", zap.Error(err))
-		}
-
-		fileData, err := io.ReadAll(file)
-		if err != nil {
-			log.Fatal("Can't read file.", zap.Error(err))
-		}
-		if len(fileData) == 0 {
-			log.Println("Storage file is empty, nothing to load.", zap.String("file", config.FileStoragePath))
-			return &MemStorage{
-				Gauges:   make(map[string]float64),
-				Counters: make(map[string]int64),
-			}
-		}
-
-		var storage MemStorage
-
-		err = json.Unmarshal(fileData, &storage)
-		if err != nil {
-			log.Fatal("Can't read json.", zap.Error(err))
-		}
-		return &storage
-	}
-
-	return &MemStorage{
-		Gauges:   make(map[string]float64),
-		Counters: make(map[string]int64),
-	}
 }
 
 func (m *MemStorage) SetGauge(metricName string, value float64) {
@@ -99,4 +42,65 @@ func (m *MemStorage) GetAllGauges() map[string]float64 {
 
 func (m *MemStorage) GetAllCounters() map[string]int64 {
 	return m.Counters
+}
+
+func NewMemStorage(config MemStorageConfig) *MemStorage {
+	var storage = &MemStorage{
+		Gauges:   make(map[string]float64),
+		Counters: make(map[string]int64),
+	}
+
+	if config.Restore {
+		err := loadData(config.FileStoragePath, storage)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+
+	}
+
+	return storage
+}
+
+func loadData(filePath string, storage *MemStorage) error {
+	file, err := os.OpenFile(filePath, os.O_RDONLY|os.O_CREATE, 0666)
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			log.Fatal("Failed to close file", err.Error())
+		}
+	}()
+
+	if err != nil {
+		log.Fatal("Can't open file.", err.Error())
+	}
+
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatal("Can't read file.", err.Error())
+	}
+	if len(fileData) == 0 {
+		log.Println("Storage file is empty, nothing to load.")
+	} else {
+		err = json.Unmarshal(fileData, &storage)
+		if err != nil {
+			log.Fatal("Can't read json.", err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (m *MemStorage) SaveData(filePath string) error {
+	data := map[string]interface{}{
+		"gauges":   m.Gauges,
+		"counters": m.Counters,
+	}
+
+	fileData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filePath, fileData, 0644)
 }
