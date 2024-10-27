@@ -55,10 +55,7 @@ func NewMemStorage(config MemStorageConfig) *MemStorage {
 		if err != nil {
 			log.Fatal(err)
 		}
-	} else {
-
 	}
-
 	return storage
 }
 
