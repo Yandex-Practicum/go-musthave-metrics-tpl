@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
 type MemStorage struct {
@@ -13,7 +14,7 @@ type MemStorage struct {
 }
 
 type MemStorageConfig struct {
-	StoreInterval   int
+	StoreInterval   time.Duration
 	FileStoragePath string
 	Restore         bool
 }

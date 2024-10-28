@@ -32,7 +32,7 @@ func main() {
 
 	r := router.SetupRouter(s)
 
-	ticker := time.NewTicker(time.Duration(c.StoreInterval) * time.Second)
+	ticker := time.NewTicker(c.StoreInterval)
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {

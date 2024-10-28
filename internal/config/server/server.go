@@ -2,13 +2,14 @@ package server
 
 import (
 	"flag"
+	"time"
 
 	"evgen3000/go-musthave-metrics-tpl.git/internal/config/utils"
 )
 
 type Config struct {
 	Host          string
-	StoreInterval int
+	StoreInterval time.Duration
 	FilePath      string
 	Restore       bool
 }
@@ -23,7 +24,7 @@ func GetServerConfig() *Config {
 	return &Config{
 		Host:          utils.GetStringValue("ADDRESS", *hostFlag),
 		FilePath:      utils.GetStringValue("FILE_STORE_PATH", *filePathFlag),
-		StoreInterval: utils.GetIntValue("STORE_INTERVAL", *storeIntervalFlag),
+		StoreInterval: time.Duration(utils.GetIntValue("STORE_INTERVAL", *storeIntervalFlag)) * time.Second,
 		Restore:       utils.GetBoolValue("RESTORE", *restoreFlag),
 	}
 }
