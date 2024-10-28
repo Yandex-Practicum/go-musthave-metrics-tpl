@@ -9,17 +9,19 @@ import (
 
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/handlers"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/fileManager"
 	"evgen3000/go-musthave-metrics-tpl.git/internal/dto"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
 func setupHandler() *handlers.Handler {
+	fm := fileManager.FileManager{}
 	memStorage := storage.NewMemStorage(storage.MemStorageConfig{
 		StoreInterval:   5,
 		FileStoragePath: "storage.json",
 		Restore:         false,
-	})
+	}, &fm)
 	return handlers.NewHandler(memStorage)
 }
 

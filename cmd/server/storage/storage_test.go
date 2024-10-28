@@ -3,6 +3,7 @@ package storage
 import (
 	"testing"
 
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/fileManager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +14,8 @@ var StorageConfig = MemStorageConfig{
 }
 
 func TestMemStorageSetAndGetGauge(t *testing.T) {
-	s := NewMemStorage(StorageConfig)
+	fm := fileManager.FileManager{}
+	s := NewMemStorage(StorageConfig, &fm)
 	s.SetGauge("temperature", 23.5)
 
 	value, exists := s.GetGauge("temperature")
@@ -21,7 +23,8 @@ func TestMemStorageSetAndGetGauge(t *testing.T) {
 	assert.Equal(t, 23.5, value)
 }
 func TestMemStorage_IncrementCounter(t *testing.T) {
-	s := NewMemStorage(StorageConfig)
+	fm := fileManager.FileManager{}
+	s := NewMemStorage(StorageConfig, &fm)
 	s.IncrementCounter("hits", 10)
 	s.IncrementCounter("hits", 5)
 
