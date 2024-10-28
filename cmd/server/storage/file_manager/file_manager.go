@@ -1,4 +1,4 @@
-package fileManager
+package file_manager
 
 import (
 	"encoding/json"

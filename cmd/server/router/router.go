@@ -2,13 +2,13 @@ package router
 
 import (
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/handlers"
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/memStorage"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/mem_storage"
 	"evgen3000/go-musthave-metrics-tpl.git/internal/compressor"
 	"evgen3000/go-musthave-metrics-tpl.git/internal/logger"
 	"github.com/go-chi/chi/v5"
 )
 
-func SetupRouter(storage *memStorage.MemStorage) *chi.Mux {
+func SetupRouter(storage *mem_storage.MemStorage) *chi.Mux {
 	h := handlers.NewHandler(storage)
 	chiRouter := chi.NewRouter()
 	chiRouter.Use(logger.LoggingMiddleware)
