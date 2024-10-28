@@ -12,12 +12,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var (
-	loggerInstance *zap.Logger
-	once           sync.Once
-)
-
 func InitLogger() *zap.Logger {
+	once := sync.Once{}
+	var loggerInstance *zap.Logger
 	once.Do(func() {
 		config := zap.Config{
 			Level:       zap.NewAtomicLevelAt(zapcore.InfoLevel),
