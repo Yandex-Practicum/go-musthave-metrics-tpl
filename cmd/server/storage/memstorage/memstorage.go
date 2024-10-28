@@ -1,4 +1,4 @@
-package mem_storage
+package memstorage
 
 type MemStorage struct {
 	Gauges   map[string]float64 `json:"gauges"`

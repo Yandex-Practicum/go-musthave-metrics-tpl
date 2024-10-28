@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/file_manager"
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/mem_storage"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/filemanager"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/memstorage"
 )
 
 type MemStorageConfig struct {
@@ -14,8 +14,8 @@ type MemStorageConfig struct {
 	Restore         bool
 }
 
-func NewMemStorage(config MemStorageConfig, fm *file_manager.FileManager) *mem_storage.MemStorage {
-	var storage = &mem_storage.MemStorage{
+func NewMemStorage(config MemStorageConfig, fm *filemanager.FileManager) *memstorage.MemStorage {
+	var storage = &memstorage.MemStorage{
 		Gauges:   make(map[string]float64),
 		Counters: make(map[string]int64),
 	}

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/mem_storage"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/memstorage"
 	"evgen3000/go-musthave-metrics-tpl.git/internal/dto"
 	"github.com/go-chi/chi/v5"
 )
@@ -17,10 +17,10 @@ const (
 )
 
 type Handler struct {
-	Storage *mem_storage.MemStorage
+	Storage *memstorage.MemStorage
 }
 
-func NewHandler(storage *mem_storage.MemStorage) *Handler {
+func NewHandler(storage *memstorage.MemStorage) *Handler {
 	return &Handler{storage}
 }
 

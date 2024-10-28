@@ -7,7 +7,7 @@ import (
 
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
-	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/file_manager"
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/filemanager"
 	"evgen3000/go-musthave-metrics-tpl.git/internal/config/server"
 	httpLogger "evgen3000/go-musthave-metrics-tpl.git/internal/logger"
 	"github.com/go-chi/chi/v5"
@@ -25,7 +25,7 @@ func runServer(config *server.Config, router *chi.Mux) {
 
 func main() {
 	c := server.GetServerConfig()
-	fs := file_manager.FileManager{}
+	fs := filemanager.FileManager{}
 	s := storage.NewMemStorage(storage.MemStorageConfig{
 		StoreInterval:   c.StoreInterval,
 		FileStoragePath: c.FilePath,

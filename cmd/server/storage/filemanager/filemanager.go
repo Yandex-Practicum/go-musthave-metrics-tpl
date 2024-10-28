@@ -1,4 +1,4 @@
-package file_manager
+package filemanager
 
 import (
 	"encoding/json"
@@ -19,7 +19,6 @@ type StorageInterface interface {
 type FileManager struct{}
 
 func (fm *FileManager) SaveData(filePath string, storage StorageInterface) error {
-	// Приведение storage к карте с сохранением состояния
 	storageMap := map[string]interface{}{
 		"gauges":   storage.GetAllGauges(),
 		"counters": storage.GetAllCounters(),
