@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/postgres"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/router"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage"
 	"evgen3000/go-musthave-metrics-tpl.git/cmd/server/storage/filemanager"
@@ -17,6 +18,10 @@ import (
 func runServer(config *server.Config, router *chi.Mux) {
 	logger := httpLogger.InitLogger()
 	logger.Info("server is running on", zap.String("host", config.Host))
+
+	postgres.Connect(config.Database)
+	defer postgres.Close()
+
 	err := http.ListenAndServe(config.Host, router)
 	if err != nil {
 		logger.Fatal("Error", zap.String("Error", err.Error()))

@@ -26,5 +26,7 @@ func SetupRouter(storage *memstorage.MemStorage) *chi.Mux {
 
 	chiRouter.Get("/", h.HomeHandler)
 
+	chiRouter.Get("/ping", h.Ping)
+
 	return chiRouter
 }
