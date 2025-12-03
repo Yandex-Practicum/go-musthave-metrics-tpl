@@ -41,5 +41,6 @@ func Init() {
 
 // GetLogger возвращает глобальный zerolog.Logger
 func GetLogger() zerolog.Logger {
+	Init() // гарантируем инициализацию
 	return log.Logger
 }
