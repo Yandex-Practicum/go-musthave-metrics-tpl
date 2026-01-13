@@ -19,6 +19,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/audit"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/middleware_proj"
 )
 
@@ -28,6 +29,8 @@ type ServerConfig struct {
 	FileStorage   string
 	Restore       bool
 	DatabaseDSN   string
+	AuditFile     string
+	AuditURL      string
 }
 
 const (
@@ -62,15 +65,17 @@ func NewMetricsStorage() *MetricsStorage {
 }
 
 type Server struct {
-	storage *MetricsStorage
-	config  *ServerConfig
-	db      *sql.DB
+	storage  *MetricsStorage
+	config   *ServerConfig
+	db       *sql.DB
+	auditors []audit.Auditor
 }
 
-func NewServer(storage *MetricsStorage, config *ServerConfig) *Server {
+func NewServer(storage *MetricsStorage, config *ServerConfig, auditors []audit.Auditor) *Server {
 	return &Server{
-		storage: storage,
-		config:  config,
+		storage:  storage,
+		config:   config,
+		auditors: auditors,
 	}
 }
 
@@ -116,6 +121,22 @@ func (s *Server) updateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		s.storage.counters[m.ID] += *m.Delta
 	}
 	s.storage.mu.Unlock()
+
+	// Формируем событие аудита
+	if len(s.auditors) > 0 {
+		event := audit.AuditEvent{
+			Timestamp: time.Now().Unix(),
+			Metrics:   []string{m.ID},
+			IPAddress: r.RemoteAddr,
+		}
+
+		// Отправляем событие во все аудиторы
+		for _, auditor := range s.auditors {
+			if err := auditor.Notify(event); err != nil {
+				log.Printf("Failed to send audit event: %v", err)
+			}
+		}
+	}
 
 	// Если синхронная запись включена — сохраняем сразу
 	if s.config != nil && s.config.FileStorage != "" && s.config.StoreInterval == 0 {
@@ -174,6 +195,22 @@ func (s *Server) valueMetricJSONHandler(w http.ResponseWriter, r *http.Request) 
 		resp.Delta = &val
 	}
 	s.storage.mu.RUnlock()
+
+	// Формируем событие аудита
+	if len(s.auditors) > 0 {
+		event := audit.AuditEvent{
+			Timestamp: time.Now().Unix(),
+			Metrics:   []string{req.ID},
+			IPAddress: r.RemoteAddr,
+		}
+
+		// Отправляем событие во все аудиторы
+		for _, auditor := range s.auditors {
+			if err := auditor.Notify(event); err != nil {
+				log.Printf("Failed to send audit event: %v", err)
+			}
+		}
+	}
 
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
@@ -265,6 +302,22 @@ func (s *Server) updateMetric(w http.ResponseWriter, metricType, metricName, met
 
 	s.storage.mu.Unlock()
 
+	// Формируем событие аудита
+	if len(s.auditors) > 0 {
+		event := audit.AuditEvent{
+			Timestamp: time.Now().Unix(),
+			Metrics:   []string{metricName},
+			IPAddress: "unknown", // Для этого типа запросов IP адрес не доступен напрямую
+		}
+
+		// Отправляем событие во все аудиторы
+		for _, auditor := range s.auditors {
+			if err := auditor.Notify(event); err != nil {
+				log.Printf("Failed to send audit event: %v", err)
+			}
+		}
+	}
+
 	// Синхронная запись при требовании
 	if s.config != nil && s.config.FileStorage != "" && s.config.StoreInterval == 0 {
 		if err := s.storage.SaveToFile(s.config.FileStorage); err != nil {
@@ -287,6 +340,23 @@ func (s *Server) valueHandler(w http.ResponseWriter, r *http.Request) {
 	value, exists := s.storage.gauges[metricName]
 	if metricType == "gauge" && exists {
 		s.storage.mu.RUnlock()
+
+		// Формируем событие аудита
+		if len(s.auditors) > 0 {
+			event := audit.AuditEvent{
+				Timestamp: time.Now().Unix(),
+				Metrics:   []string{metricName},
+				IPAddress: "unknown", // Для этого типа запросов IP адрес не доступен напрямую
+			}
+
+			// Отправляем событие во все аудиторы
+			for _, auditor := range s.auditors {
+				if err := auditor.Notify(event); err != nil {
+					log.Printf("Failed to send audit event: %v", err)
+				}
+			}
+		}
+
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%g", value)
@@ -295,6 +365,22 @@ func (s *Server) valueHandler(w http.ResponseWriter, r *http.Request) {
 	// check counter
 	valc, existc := s.storage.counters[metricName]
 	s.storage.mu.RUnlock()
+
+	// Формируем событие аудита
+	if len(s.auditors) > 0 {
+		event := audit.AuditEvent{
+			Timestamp: time.Now().Unix(),
+			Metrics:   []string{metricName},
+			IPAddress: "unknown", // Для этого типа запросов IP адрес не доступен напрямую
+		}
+
+		// Отправляем событие во все аудиторы
+		for _, auditor := range s.auditors {
+			if err := auditor.Notify(event); err != nil {
+				log.Printf("Failed to send audit event: %v", err)
+			}
+		}
+	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
@@ -455,7 +541,17 @@ func run() error {
 
 	// Создаем зависимости
 	storage := NewMetricsStorage()
-	server := NewServer(storage, config)
+
+	// Инициализация аудиторов
+	var auditors []audit.Auditor
+	if config.AuditFile != "" {
+		auditors = append(auditors, audit.NewFileAuditor(config.AuditFile))
+	}
+	if config.AuditURL != "" {
+		auditors = append(auditors, audit.NewHTTPAuditor(config.AuditURL))
+	}
+
+	server := NewServer(storage, config, auditors)
 
 	if config.DatabaseDSN != "" {
 		db, err := sql.Open("postgres", config.DatabaseDSN)
@@ -543,11 +639,15 @@ func parseServerFlags() (*ServerConfig, error) {
 	var flagInterval int
 	var flagFile string
 	var flagRestore bool
+	var flagAuditFile string
+	var flagAuditURL string
 
 	flag.StringVar(&flagAddress, "a", "", "HTTP server address")
 	flag.IntVar(&flagInterval, "i", -1, "Store interval in seconds (0 = sync write)")
 	flag.StringVar(&flagFile, "f", "", "File path for storage")
 	flag.BoolVar(&flagRestore, "r", false, "Restore from storage file on start")
+	flag.StringVar(&flagAuditFile, "audit-file", "", "Path to audit log file")
+	flag.StringVar(&flagAuditURL, "audit-url", "", "URL for audit logs")
 	flag.Parse()
 
 	if os.Getenv("ADDRESS") == "" && flagAddress != "" {
