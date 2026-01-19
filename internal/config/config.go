@@ -91,7 +91,7 @@ func loadServerConfig() (*ServerConfig, error) {
 		cfg.AuditFile = envAuditFile
 	}
 
-	if envAuditURL := os.Getenv("AUDIT_URL"); envAuditURL == "" && flagAuditURL != "" {
+	if envAuditURL := os.Getenv("AUDIT_URL"); envAuditURL != "" {
 		cfg.AuditURL = flagAuditURL
 	} else if envAuditURL != "" {
 		cfg.AuditURL = envAuditURL

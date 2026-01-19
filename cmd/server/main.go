@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -86,7 +86,7 @@ func (s *Server) updateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "cannot read body", http.StatusInternalServerError)
 		return
@@ -156,7 +156,7 @@ func (s *Server) valueMetricJSONHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
 		return
 	}
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "cannot read body", http.StatusInternalServerError)
 		return
@@ -713,14 +713,14 @@ func (ms *MetricsStorage) SaveToFile(path string) error {
 
 	// Безопасная запись: сначала во временный файл, затем переименование
 	tmp := path + ".tmp"
-	if err := ioutil.WriteFile(tmp, data, 0o644); err != nil {
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)
 }
 
 func (ms *MetricsStorage) RestoreFromFile(path string) error {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}

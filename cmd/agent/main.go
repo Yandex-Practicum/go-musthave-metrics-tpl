@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -28,9 +27,9 @@ type RootConfig struct {
 
 // AgentConfig с тегами yaml и env
 type AgentConfig struct {
-	ServerAddress  string        `yaml:"server_adress" env:"ADDRESS"` // Обращаем внимание: env тег использует точное имя переменной
-	PollInterval   time.Duration `yaml:"poll_interval"`               // интервал в time.Duration, парсим отдельно
-	ReportInterval time.Duration `yaml:"report_interval"`             // как выше
+	ServerAddress  string        `yaml:"server_address" env:"ADDRESS"` // Обращаем внимание: env тег использует точное имя переменной
+	PollInterval   time.Duration `yaml:"poll_interval"`                // интервал в time.Duration, парсим отдельно
+	ReportInterval time.Duration `yaml:"report_interval"`              // как выше
 }
 
 const (
@@ -169,7 +168,7 @@ func loadConfig(path string) (*AgentConfig, error) {
 		},
 	}
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Printf("Config file %q not found, using defaults and env variables", path)
 	} else {
