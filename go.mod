@@ -28,9 +28,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/lib/pq v1.10.9
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/shirou/gopsutil/v3 v3.24.5

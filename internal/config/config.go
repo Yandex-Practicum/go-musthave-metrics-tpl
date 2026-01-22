@@ -28,7 +28,8 @@ type Config struct {
 	StoreInterval time.Duration
 	StoreFile     string
 	Restore       bool
-	RateLimit     int
+	AuditFile     string
+	AuditURL      string
 }
 
 const (
@@ -54,10 +55,12 @@ func loadServerConfig() (*ServerConfig, error) {
 	}
 
 	var (
-		flagAddress  string
-		flagInterval int
-		flagFile     string
-		flagRestore  bool
+		flagAddress   string
+		flagInterval  int
+		flagFile      string
+		flagRestore   bool
+		flagAuditFile string
+		flagAuditURL  string
 	)
 
 	flag.StringVar(&cfg.Key, "k", os.Getenv("KEY"), "Secret key for HMAC")
@@ -65,6 +68,8 @@ func loadServerConfig() (*ServerConfig, error) {
 	flag.IntVar(&flagInterval, "i", -1, "Store interval in seconds (0 = sync write)")
 	flag.StringVar(&flagFile, "f", "", "File path for storage")
 	flag.BoolVar(&flagRestore, "r", false, "Restore from storage file on start")
+	flag.StringVar(&flagAuditFile, "audit-file", "", "Path to audit log file")
+	flag.StringVar(&flagAuditURL, "audit-url", "", "URL for audit logs")
 
 	flag.Parse()
 
@@ -93,6 +98,19 @@ func loadServerConfig() (*ServerConfig, error) {
 	} else {
 		r := strings.ToLower(envRestore)
 		cfg.Restore = r == "true" || r == "1"
+	}
+
+	// Обработка флагов аудита
+	if envAuditFile := os.Getenv("AUDIT_FILE"); envAuditFile == "" && flagAuditFile != "" {
+		cfg.AuditFile = flagAuditFile
+	} else if envAuditFile != "" {
+		cfg.AuditFile = envAuditFile
+	}
+
+	if envAuditURL := os.Getenv("AUDIT_URL"); envAuditURL != "" {
+		cfg.AuditURL = flagAuditURL
+	} else if envAuditURL != "" {
+		cfg.AuditURL = envAuditURL
 	}
 
 	return cfg, nil

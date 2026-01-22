@@ -25,4 +25,4 @@ logs/*
 # IDEs directories
 .idea
 .vscode
-.DS_Store
+*.log

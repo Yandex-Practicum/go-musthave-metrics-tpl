@@ -18,36 +18,21 @@ import (
 )
 
 type Collector struct {
-	mu        *sync.Mutex
-	gauge     map[string]float64
-	counter   map[string]int64
-	buffer    []model.Metrics
-	BatchSize int
-	client    *http.Client // Добавлено поле для HTTP-клиента
-	endpoint  string       // Добавлено поле для адреса сервера
+	mu      sync.RWMutex
+	gauge   map[string]float64
+	counter map[string]int64
 }
 
-func (c *Collector) UpdateMetrics() {
-	panic("unimplemented")
-}
-
-type AgentConfig struct {
-	BatchSize     int           `env:"BATCH_SIZE" default:"50"`
-	FlushInterval time.Duration `env:"FLUSH_INTERVAL" default:"5s"`
-}
-
-func NewCollector(batchSize int, client *http.Client, endpoint string) *Collector {
+func NewCollector() *Collector {
 	return &Collector{
-		BatchSize: batchSize,
-		mu:        &sync.Mutex{},
-		gauge:     make(map[string]float64),
-		counter:   make(map[string]int64),
-		client:    client,   // Инициализация клиента
-		endpoint:  endpoint, // Инициализация адреса сервера
+		mu:      sync.RWMutex{},
+		gauge:   make(map[string]float64),
+		counter: make(map[string]int64),
 	}
 }
 
-func (c *Collector) UdateMetrics() {
+// UpdateMetrics собирает runtime-метрики и обновляет RandomValue и PollCount
+func (c *Collector) UpdateMetrics() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -83,31 +68,31 @@ func (c *Collector) UdateMetrics() {
 	c.gauge["Sys"] = float64(m.Sys)
 	c.gauge["TotalAlloc"] = float64(m.TotalAlloc)
 
-	//RandomValue (тип gauge) — обновляемое произвольное значение
+	// RandomValue (тип gauge)
 	c.gauge["RandomValue"] = rand.Float64()
 
 	// Counter метрики
-	c.counter["PollCount"]++
+	c.counter["PollCount"] = c.counter["PollCount"] + 1
 }
 
 // GetGauges возвращает копию всех gauge метрик
 func (c *Collector) GetGauges() map[string]float64 {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
-	result := make(map[string]float64)
-	for k, v := range c.counter {
-		result[k] = float64(v)
+	result := make(map[string]float64, len(c.gauge))
+	for k, v := range c.gauge {
+		result[k] = v
 	}
 	return result
 }
 
 // GetCounters возвращает копию всех counter метрик
 func (c *Collector) GetCounters() map[string]int64 {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
-	result := make(map[string]int64)
+	result := make(map[string]int64, len(c.counter))
 	for k, v := range c.counter {
 		result[k] = v
 	}
@@ -116,8 +101,8 @@ func (c *Collector) GetCounters() map[string]int64 {
 
 // GetMetricsCount возвращает количество метрик
 func (c *Collector) GetMetricsCount() (int, int) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return len(c.gauge), len(c.counter)
 }
 
