@@ -30,7 +30,6 @@ type AgentConfig struct {
 	ServerAddress  string        `yaml:"server_address" env:"ADDRESS"` // Обращаем внимание: env тег использует точное имя переменной
 	PollInterval   time.Duration `yaml:"poll_interval"`                // интервал в time.Duration, парсим отдельно
 	ReportInterval time.Duration `yaml:"report_interval"`              // как выше
-
 }
 
 const (
