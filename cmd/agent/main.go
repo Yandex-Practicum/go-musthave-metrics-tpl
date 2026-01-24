@@ -64,10 +64,11 @@ func run() error {
 
 	log.Info().
 		Str("Starting metrics agent with config:", "").
-		Str("  Server address: %s", cfg.ServerAddress).
-		Dur("  Poll interval: %v", cfg.PollInterval).
-		Dur("  Report interval: %v", cfg.ReportInterval)
+		Str("Server address: %s", cfg.ServerAddress).
+		Dur("Poll interval: %v", cfg.PollInterval).
+		Dur("Report interval: %v", cfg.ReportInterval)
 
+	// client := &http.Client{Timeout: 10 * time.Second}
 	collector := agent.NewCollector()
 
 	serverURL := cfg.ServerAddress
