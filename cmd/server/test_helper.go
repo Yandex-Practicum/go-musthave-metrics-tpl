@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -91,16 +92,26 @@ func TestableRun() error {
 		}
 	}()
 
-	// Ждем немного, чтобы сервер успел запуститься
-	time.Sleep(100 * time.Millisecond)
-
 	// Проверяем, что сервер запущен
-	conn, err := net.DialTimeout("tcp", config.Address, 1*time.Second)
-	if err != nil {
-		return err
-	}
-	conn.Close()
+	ready := make(chan struct{})
+	go func() {
+		for {
+			conn, err := net.DialTimeout("tcp", config.Address, 100*time.Millisecond)
+			if err == nil {
+				conn.Close()
+				ready <- struct{}{}
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
 
-	// Возвращаем nil, чтобы тесты могли продолжить работу
-	return nil
+	select {
+	case <-ready:
+		// Сервер готов
+		return nil
+	case <-time.After(5 * time.Second):
+		// Timeout - сервер не готов
+		return fmt.Errorf("server failed to start within timeout")
+	}
 }

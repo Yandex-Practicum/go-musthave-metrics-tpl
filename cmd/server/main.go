@@ -647,7 +647,29 @@ func run() error {
 	// Вместо этого возвращаем nil, чтобы тесты могли работать
 	// Но для корректной работы тестов нужно убедиться, что сервер запущен
 	// Возвращаем nil, чтобы тесты могли продолжить выполнение
-	return nil
+	// Однако, для корректной работы тестов, нам нужно дождаться, пока сервер действительно начнет слушать порт
+	// Проверим, что сервер действительно слушает порт
+	ready := make(chan struct{})
+	go func() {
+		for {
+			conn, err := net.DialTimeout("tcp", config.Address, 100*time.Millisecond)
+			if err == nil {
+				conn.Close()
+				ready <- struct{}{}
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case <-ready:
+		// Сервер готов
+		return nil
+	case <-time.After(5 * time.Second):
+		// Timeout - сервер не готов
+		return fmt.Errorf("server failed to start within timeout")
+	}
 }
 
 func parseServerFlags() (*ServerConfig, error) {
