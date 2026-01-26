@@ -1,3 +1,4 @@
+// Package main implements the metrics server.
 package main
 
 import (
@@ -23,16 +24,25 @@ import (
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/middleware_proj"
 )
 
+// ServerConfig holds the configuration for the server.
 type ServerConfig struct {
-	Address       string
+	// Address is the address to listen on
+	Address string
+	// StoreInterval is the interval between automatic saves to file
 	StoreInterval time.Duration
-	FileStorage   string
-	Restore       bool
-	DatabaseDSN   string
-	AuditFile     string
-	AuditURL      string
+	// FileStorage is the path to the file for storing metrics
+	FileStorage string
+	// Restore indicates whether to restore metrics from file on startup
+	Restore bool
+	// DatabaseDSN is the database connection string
+	DatabaseDSN string
+	// AuditFile is the path to the audit log file
+	AuditFile string
+	// AuditURL is the URL for audit logs
+	AuditURL string
 }
 
+// Default configuration constants
 const (
 	defaultStoreInterval  = 300 * time.Second
 	defaultFileStorage    = "metrics.json"
@@ -44,19 +54,29 @@ const (
 	defaultDatabaseDSN    = ""
 )
 
+// Metrics represents a metric with its type, value, and other properties.
 type Metrics struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	// ID is the name of the metric
+	ID string `json:"id"`
+	// MType is the type of the metric, either "gauge" or "counter"
+	MType string `json:"type"`
+	// Delta is the value of a counter metric
+	Delta *int64 `json:"delta,omitempty"`
+	// Value is the value of a gauge metric
+	Value *float64 `json:"value,omitempty"`
 }
 
+// MetricsStorage is an in-memory storage for metrics.
 type MetricsStorage struct {
-	gauges   map[string]float64
+	// gauges stores gauge metrics
+	gauges map[string]float64
+	// counters stores counter metrics
 	counters map[string]int64
-	mu       sync.RWMutex
+	// mu is the mutex for concurrent access
+	mu sync.RWMutex
 }
 
+// NewMetricsStorage creates and returns a new MetricsStorage instance.
 func NewMetricsStorage() *MetricsStorage {
 	return &MetricsStorage{
 		gauges:   make(map[string]float64),
@@ -64,13 +84,19 @@ func NewMetricsStorage() *MetricsStorage {
 	}
 }
 
+// Server represents the metrics server.
 type Server struct {
-	storage  *MetricsStorage
-	config   *ServerConfig
-	db       *sql.DB
+	// storage is the storage backend for metrics
+	storage *MetricsStorage
+	// config is the server configuration
+	config *ServerConfig
+	// db is the database connection
+	db *sql.DB
+	// auditors are the audit services
 	auditors []audit.Auditor
 }
 
+// NewServer creates and returns a new Server instance.
 func NewServer(storage *MetricsStorage, config *ServerConfig, auditors []audit.Auditor) *Server {
 	return &Server{
 		storage:  storage,
