@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -615,11 +616,32 @@ func run() error {
 
 	// Запускаем HTTP сервер в любом случае (server всегда используется)
 	log.Printf("Starting metrics server on %s", config.Address)
-	if err := http.ListenAndServe(config.Address, server.Router()); err != nil {
-		return fmt.Errorf("server failed to start: %w", err)
+
+	// Создаем сервер с контекстом для корректного завершения
+	srv := &http.Server{
+		Addr:    config.Address,
+		Handler: server.Router(),
 	}
 
-	return nil
+	// Запускаем сервер в отдельной горутине
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Server error: %v", err)
+		}
+	}()
+
+	// Ждем немного, чтобы сервер успел запуститься
+	time.Sleep(100 * time.Millisecond)
+
+	// Проверяем, что сервер запущен
+	conn, err := net.DialTimeout("tcp", config.Address, 1*time.Second)
+	if err != nil {
+		return fmt.Errorf("server failed to start: %w", err)
+	}
+	conn.Close()
+
+	// Ожидаем завершения
+	select {}
 }
 
 func parseServerFlags() (*ServerConfig, error) {
