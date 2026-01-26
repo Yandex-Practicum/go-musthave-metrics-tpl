@@ -11,6 +11,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,8 +22,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/audit"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/middleware_proj"
-	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/server"
-	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/storage"
 )
 
 // ServerConfig holds the configuration for the server.
@@ -171,8 +171,11 @@ func (s *Server) updateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// Создание обработчиков
-	h := handlers.NewHandlers(store)
+	// Ответ клиенту
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `{"status":"ok"}`)
+}
 
 func (s *Server) valueMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 	ct := r.Header.Get("Content-Type")
@@ -269,11 +272,7 @@ func (s *Server) Router() http.Handler {
 	r.Get("/", s.rootHandler)
 	r.Get("/ping", s.pingHandler)
 
-	if cfg.Key != "" {
-		r.Use(handlers.NewSHA256CheckMiddleware(cfg.Key))
-	}
-
-	s.updateMetric(w, parts[0], parts[1], parts[2])
+	return r
 }
 
 func (s *Server) updateHandlerChi(w http.ResponseWriter, r *http.Request) {

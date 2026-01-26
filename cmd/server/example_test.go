@@ -120,7 +120,7 @@ func Example_periodicSave() {
 	storage := NewMetricsStorage()
 
 	// Create a new server with periodic save
-	server := NewServer(storage, &ServerConfig{
+	_ = NewServer(storage, &ServerConfig{
 		Address:       "localhost:8080",
 		StoreInterval: 0,
 		FileStorage:   "metrics.json",
