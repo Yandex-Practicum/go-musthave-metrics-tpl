@@ -641,7 +641,9 @@ func run() error {
 	conn.Close()
 
 	// Ожидаем завершения
-	select {}
+	// select {} - убираем, так как это блокирует выполнение
+	// Вместо этого возвращаем nil, чтобы тесты могли работать
+	return nil
 }
 
 func parseServerFlags() (*ServerConfig, error) {

@@ -101,5 +101,6 @@ func TestableRun() error {
 	}
 	conn.Close()
 
+	// Возвращаем nil, чтобы тесты могли продолжить работу
 	return nil
 }

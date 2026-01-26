@@ -1,1 +1,7 @@
-null
+[
+  {
+    "id": "testCounter",
+    "type": "counter",
+    "delta": 100
+  }
+]
