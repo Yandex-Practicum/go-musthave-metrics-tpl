@@ -83,3 +83,11 @@ func (s *Sender) sendMetric(url, metricType, metricName string) error {
 	log.Printf("Sent %s metric: %s", metricType, metricName)
 	return nil
 }
+
+func addHashHeader(req *http.Request, body []byte, key string) {
+	if key == "" {
+		return
+	}
+	hash := ComputeHMAC(body, key)
+	req.Header.Set("HashSHA256", hash)
+}

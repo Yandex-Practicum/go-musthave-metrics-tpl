@@ -2,8 +2,11 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"sync"
+
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/model"
 )
 
 // ErrMetricNotFound is returned when a requested metric is not found.
@@ -24,6 +27,8 @@ type Storage interface {
 	GetCounter(name string) (int64, error)
 	// GetAllMetrics returns all stored metrics.
 	GetAllMetrics() (map[string]float64, map[string]int64)
+	Ping(ctx context.Context) error
+	Close() error
 }
 
 // MemStorage is an in-memory implementation of the Storage interface.
@@ -89,8 +94,8 @@ func (m *MemStorage) GetAllMetrics() (map[string]float64, map[string]int64) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	gaugesCopy := make(map[string]float64)
-	countersCopy := make(map[string]int64)
+	gaugesCopy := make(map[string]float64, len(m.gauges))
+	countersCopy := make(map[string]int64, len(m.counters))
 
 	for k, v := range m.gauges {
 		gaugesCopy[k] = v
@@ -101,4 +106,9 @@ func (m *MemStorage) GetAllMetrics() (map[string]float64, map[string]int64) {
 	}
 
 	return gaugesCopy, countersCopy
+}
+
+func (m *MetricsStorage) Ping(ctx context.Context) error {
+	// Для in-memory хранилища всегда возвращаем успешный ping
+	return nil
 }

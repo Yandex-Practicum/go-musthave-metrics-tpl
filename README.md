@@ -86,3 +86,89 @@ go run cmd/agent/main.go -h
 # 7. Для отладки - тестовый запрос через curl
 curl -X POST -H "Content-Type: text/plain" \
   "http://localhost:8080/update/gauge/TestMetric/123.456"
+
+
+tree ./go-musthave-metrics-trainer
+./go-musthave-metrics-trainer
+├── README.md
+├── api
+│   └── api.proto
+├── cmd
+│   ├── agent
+│   │   └── main.go
+│   └── server
+│       └── main.go
+├── internal
+│   ├── agent
+│   │   └── sender.go
+│   ├── config
+│   │   ├── config.go
+│   │   └── db
+│   │       └── db.go
+│   ├── handler
+│   │   └── router.go
+│   ├── model
+│   │   └── metrics.go
+│   ├── repository
+│   │   └── postgres.go
+│   └── service
+│       └── put.go
+├── migrations
+│   └── 001-init.sql
+└── pkg
+    └── client.go
+
+
+Команда tree ./go-musthave-metrics-trainer используется для визуализации структуры каталогов и файлов в директории ./go-musthave-metrics-trainer. Утилита tree рекурсивно отображает содержимое директории в древовидном формате, что позволяет легко увидеть иерархию файлов и папок.
+
+В приведённом примере структура проекта выглядит следующим образом:
+•	Корневая директория: ./go-musthave-metrics-trainer.
+•	В корневой директории находится файл README.md, который, скорее всего, содержит описание проекта, инструкции по его использованию или другую важную информацию.
+•	Директория api: содержит файл api.proto, который, вероятно, описывает API проекта с использованием Protocol Buffers (protobuf) — формата для сериализации структурированных данных.
+•	Директория cmd: содержит поддиректории с кодовой базой для различных компонентов приложения:
+o	agent — поддиректория с файлом main.go, который, вероятно, является точкой входа для компонента «агент».
+o	server — поддиректория с файлом main.go, который, вероятно, является точкой входа для серверной части приложения.
+•	Директория internal: содержит внутренние компоненты приложения:
+o	agent — поддиректория с файлом sender.go, который, возможно, отвечает за отправку данных.
+o	config — поддиректория с файлами для работы с конфигурацией приложения (config.go) и базой данных (db.go).
+o	handler — поддиректория с файлом router.go, который, вероятно, отвечает за маршрутизацию запросов.
+o	model — поддиректория с файлом metrics.go, который, возможно, содержит модели данных, связанные с метриками.
+o	repository — поддиректория с файлом postgres.go, который, вероятно, реализует взаимодействие с базой данных PostgreSQL.
+o	service — поддиректория с файлом put.go, который, возможно, содержит логику для операций записи данных.
+•	Директория migrations: содержит SQL-скрипты для миграции базы данных. В данном случае присутствует файл 001-init.sql, который, вероятно, используется для инициализации базы данных.
+•	Директория pkg: содержит общие утилиты или библиотеки, которые могут использоваться в проекте. В данном случае присутствует файл client.go, который, вероятно, реализует клиентскую часть для взаимодействия с каким-либо сервисом или API.
+Такая структура проекта является типичной для многих Go-приложений и способствует организации кода, упрощая его понимание, поддержку и масштабирование. Например:
+•	разделение на cmd, internal и pkg помогает чётко разграничить точки входа в приложение, внутреннюю логику и повторно используемые компоненты;
+•	наличие директории api с файлами protobuf позволяет легко описывать и генерировать код для взаимодействия с API;
+•	директория migrations упрощает управление изменениями схемы базы данных.
+В целом, подобная организация проекта делает код более модульным, читаемым и удобным для командной разработки.
+
+
+api/
+cmd/agent/main.go
+cmd/server/main.go
+cmd/server/main_test.go
+internal/agent/agent.go
+internal/agent/collector.go
+internal/agent/collector_test.go
+internal/agent/sender.go
+internal/agent/sender_test.go
+internal/agent/util.go
+internal/config/config.go
+internal/handler/handlers.go
+internal/logger/logger.go
+internal/logger/logging.go
+internal/middleware_proj/gzip.go
+internal/model/metrics.go
+internal/repository
+internal/server/server.go
+internal/service
+internal/storage/postgresql.go
+internal/storage/storage.go
+logs/
+migrations/001_init.down.sql
+migrations/001_init.up.sql
+pkg/README.md
+go.mod
+go.sum
+README.md  а для этой схемы

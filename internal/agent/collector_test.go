@@ -1,12 +1,16 @@
 package agent
 
 import (
+	"net/http"
 	"sync"
 	"testing"
 )
 
 func TestNewCollector(t *testing.T) {
-	collector := NewCollector()
+	batchSize := 0
+	client := http.Client{}
+	endpoint := ""
+	collector := NewCollector(batchSize, &client, endpoint)
 
 	if collector == nil {
 		t.Fatal("NewCollector() returned nil")
@@ -22,7 +26,10 @@ func TestNewCollector(t *testing.T) {
 }
 
 func TestUpdateMetrics(t *testing.T) {
-	collector := NewCollector()
+	batchSize := 0
+	client := http.Client{}
+	endpoint := ""
+	collector := NewCollector(batchSize, &client, endpoint)
 
 	// Проверяем начальное состояние
 	gauge := collector.GetGauges()
@@ -75,7 +82,10 @@ func TestUpdateMetrics(t *testing.T) {
 }
 
 func TestPollCountIncrement(t *testing.T) {
-	collector := NewCollector()
+	batchSize := 0
+	client := http.Client{}
+	endpoint := ""
+	collector := NewCollector(batchSize, &client, endpoint)
 
 	// Обновляем метрики несколько раз
 	for i := 1; i <= 5; i++ {
@@ -92,7 +102,10 @@ func TestPollCountIncrement(t *testing.T) {
 }
 
 func TestRandomValueChanges(t *testing.T) {
-	collector := NewCollector()
+	batchSize := 0
+	client := http.Client{}
+	endpoint := ""
+	collector := NewCollector(batchSize, &client, endpoint)
 
 	// Собираем несколько значений RandomValue
 	const numSamples = 100
@@ -148,7 +161,10 @@ func TestRandomValueChanges(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	collector := NewCollector()
+	batchSize := 0
+	client := http.Client{}
+	endpoint := ""
+	collector := NewCollector(batchSize, &client, endpoint)
 
 	const (
 		numWriters      = 10

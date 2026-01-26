@@ -3,8 +3,8 @@ package models
 
 // Metric types
 const (
-	Counter = "counter"
-	Gauge   = "gauge"
+	TypeCounter MetricType = "counter"
+	TypeGauge   MetricType = "gauge"
 )
 
 // Metrics represents a metric with its type, value, and other properties.

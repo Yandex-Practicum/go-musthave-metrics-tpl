@@ -11,8 +11,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +20,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/audit"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/middleware_proj"
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/server"
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/storage"
 )
 
 // ServerConfig holds the configuration for the server.
@@ -171,10 +171,8 @@ func (s *Server) updateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok"}`))
-}
+	// Создание обработчиков
+	h := handlers.NewHandlers(store)
 
 func (s *Server) valueMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
 	ct := r.Header.Get("Content-Type")
@@ -271,17 +269,8 @@ func (s *Server) Router() http.Handler {
 	r.Get("/", s.rootHandler)
 	r.Get("/ping", s.pingHandler)
 
-	return r
-}
-
-func (s *Server) updateHandler(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/update/")
-	parts := strings.Split(path, "/")
-
-	if len(parts) != 3 {
-		http.Error(w, "Invalid URL format. Expected: /update/{type}/{name}/{value}",
-			http.StatusBadRequest)
-		return
+	if cfg.Key != "" {
+		r.Use(handlers.NewSHA256CheckMiddleware(cfg.Key))
 	}
 
 	s.updateMetric(w, parts[0], parts[1], parts[2])
