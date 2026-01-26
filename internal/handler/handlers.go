@@ -1,3 +1,4 @@
+// Package handlers provides HTTP handlers for metrics operations.
 package handlers
 
 import (
@@ -11,15 +12,19 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// MetricHandlers handles HTTP requests for metrics operations.
 type MetricHandlers struct {
+	// storage is the storage backend for metrics
 	storage storage.Storage
 }
 
+// NewMetricHandlers creates and returns a new MetricHandlers instance.
 func NewMetricHandlers(storage storage.Storage) *MetricHandlers {
 	return &MetricHandlers{storage: storage}
 }
 
-// updateHandler обрабатывает запросы на обновление метрик
+// updateHandler handles requests to update metrics via path parameters.
+// It expects URL parameters: type, name, and value.
 func (h *MetricHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
@@ -54,7 +59,8 @@ func (h *MetricHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "OK\n")
 }
 
-// valueHandler обрабатывает запросы на получение значения метрики
+// valueHandler handles requests to retrieve metric values via path parameters.
+// It expects URL parameters: type and name.
 func (h *MetricHandlers) valueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
