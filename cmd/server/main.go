@@ -636,6 +636,8 @@ func run() error {
 	// Проверяем, что сервер запущен
 	conn, err := net.DialTimeout("tcp", config.Address, 1*time.Second)
 	if err != nil {
+		log.Printf("Server failed to start: %v", err)
+		// Возвращаем ошибку, чтобы тесты могли обработать
 		return fmt.Errorf("server failed to start: %w", err)
 	}
 	conn.Close()
@@ -643,6 +645,8 @@ func run() error {
 	// Ожидаем завершения
 	// select {} - убираем, так как это блокирует выполнение
 	// Вместо этого возвращаем nil, чтобы тесты могли работать
+	// Но для корректной работы тестов нужно убедиться, что сервер запущен
+	// Возвращаем nil, чтобы тесты могли продолжить выполнение
 	return nil
 }
 
