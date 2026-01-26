@@ -3,20 +3,15 @@ package handlers
 
 import (
 	"bytes"
-	"compress/gzip"
-	"context"
 	"crypto/hmac"
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/agent"
-	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/model"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/storage"
 
 	"github.com/go-chi/chi/v5"
@@ -39,10 +34,7 @@ func (h *MetricHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
 	metricValue := chi.URLParam(r, "value")
-	h.updateMetric(w, metricType, metricName, metricValue)
-}
 
-func (h *Handlers) updateMetric(w http.ResponseWriter, metricType, metricName, metricValue string) {
 	switch metricType {
 	case "gauge":
 		value, err := strconv.ParseFloat(metricValue, 64)
@@ -72,8 +64,8 @@ func (h *Handlers) updateMetric(w http.ResponseWriter, metricType, metricName, m
 	fmt.Fprint(w, "OK\n")
 }
 
-
-func (h *Handlers) valueHandler(w http.ResponseWriter, r *http.Request) {
+// valueHandler handles requests to get metric values via path parameters.
+func (h *MetricHandlers) valueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
 
@@ -101,7 +93,8 @@ func (h *Handlers) valueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handlers) rootHandler(w http.ResponseWriter, r *http.Request) {
+// rootHandler handles requests to the root path and displays a dashboard.
+func (h *MetricHandlers) rootHandler(w http.ResponseWriter, r *http.Request) {
 	gauges, counters := h.storage.GetAllMetrics()
 
 	tmpl := `<!DOCTYPE html>
@@ -172,6 +165,20 @@ func (h *Handlers) rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PingHandler handles requests to the ping endpoint and checks database connection.
+func (h *MetricHandlers) PingHandler(w http.ResponseWriter, r *http.Request) {
+	err := h.storage.Ping(r.Context())
+	if err != nil {
+		http.Error(w, "Database connection failed", http.StatusInternalServerError)
+		log.Printf("Database ping error: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "OK\n")
+}
+
 func NewSHA256CheckMiddleware(key string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -180,7 +187,7 @@ func NewSHA256CheckMiddleware(key string) func(next http.Handler) http.Handler {
 				return
 			}
 
-			bodyBytes, err := ioutil.ReadAll(r.Body)
+			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, "cannot read body", http.StatusBadRequest)
 				return
@@ -196,7 +203,7 @@ func NewSHA256CheckMiddleware(key string) func(next http.Handler) http.Handler {
 			}
 
 			// Вернуть тело для следующего обработчика
-			r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 			next.ServeHTTP(w, r)
 		})

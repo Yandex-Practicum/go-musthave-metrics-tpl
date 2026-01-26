@@ -15,13 +15,13 @@ import (
 )
 
 type Agent struct {
-	cfg         *config.Config
+	cfg         *config.ServerConfig
 	metricsChan chan model.Metrics
 	client      *HTTPClient
 	wg          sync.WaitGroup
 }
 
-func NewAgent(cfg *config.Config) *Agent {
+func NewAgent(cfg *config.ServerConfig) *Agent {
 	return &Agent{
 		cfg:         cfg,
 		metricsChan: make(chan model.Metrics, 1000),
@@ -82,7 +82,7 @@ func (a *Agent) runWorkers(ctx context.Context) {
 func (a *Agent) sendGauge(name string, value float64) {
 	a.metricsChan <- model.Metrics{
 		ID:    name,
-		MType: "gauge",
+		MType: model.TypeGauge,
 		Value: &value,
 	}
 }
@@ -90,7 +90,7 @@ func (a *Agent) sendGauge(name string, value float64) {
 func (a *Agent) sendCounter(name string, value int64) {
 	a.metricsChan <- model.Metrics{
 		ID:    name,
-		MType: "counter",
+		MType: model.TypeCounter,
 		Delta: &value,
 	}
 }

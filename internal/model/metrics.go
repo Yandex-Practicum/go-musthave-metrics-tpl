@@ -1,5 +1,8 @@
-// Package models provides data structures for metrics.
-package models
+// Package model provides data structures for metrics.
+package model
+
+// MetricType represents the type of a metric
+type MetricType string
 
 // Metric types
 const (
@@ -17,7 +20,7 @@ type Metrics struct {
 	// ID is the name of the metric
 	ID string `json:"id"`
 	// MType is the type of the metric, either "gauge" or "counter"
-	MType string `json:"type"`
+	MType MetricType `json:"type"`
 	// Delta is the value of a counter metric
 	Delta *int64 `json:"delta,omitempty"`
 	// Value is the value of a gauge metric

@@ -13,15 +13,15 @@ import (
 )
 
 type HTTPClient struct {
-	cfg    *config.Config
+	cfg    *config.ServerConfig
 	client *http.Client
 }
 
-func (c *HTTPClient) SendBatch(metricsBatch []model.Metrics) any {
+func (c *HTTPClient) SendBatch(metricsBatch []model.Metrics) error {
 	panic("unimplemented")
 }
 
-func NewHTTPClient(cfg *config.Config) *HTTPClient {
+func NewHTTPClient(cfg *config.ServerConfig) *HTTPClient {
 	return &HTTPClient{
 		cfg:    cfg,
 		client: &http.Client{Timeout: 10 * time.Second},

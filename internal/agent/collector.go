@@ -1,19 +1,11 @@
 package agent
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"log"
 	"math/rand"
-	"net"
-	"net/http"
 	"runtime"
 	"sync"
-	"time"
 
-	"github.com/cenkalti/backoff/v4"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/model"
 )
 
@@ -106,119 +98,34 @@ func (c *Collector) GetMetricsCount() (int, int) {
 	return len(c.gauge), len(c.counter)
 }
 
-func (c *Collector) AddMetric(m model.Metrics) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// SendMetrics отправляет метрики через HTTP клиент
+func (c *Collector) SendMetrics(client *HTTPClient, addr string) error {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
-	c.buffer = append(c.buffer, m)
-	if len(c.buffer) >= c.BatchSize {
-		go c.sendBatch()
-	}
-}
-
-func (c *Collector) sendBatch() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if len(c.buffer) == 0 {
-		return
-	}
-
-	body, err := json.Marshal(c.buffer)
-	if err != nil {
-		log.Printf("Failed to marshal batch: %v", err)
-		return
-	}
-
-	compressed := Compress(body)
-
-	req, err := http.NewRequest("POST", c.endpoint+"/updates", bytes.NewReader(compressed))
-	if err != nil {
-		log.Printf("Failed to create HTTP request: %v", err)
-		return
-	}
-
-	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		log.Printf("Failed to send HTTP request: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		c.buffer = c.buffer[:0]
-	}
-
-	sendBuffer := make([]model.Metrics, len(c.buffer))
-	copy(sendBuffer, c.buffer)
-
-	// Настройка стратегии повторов
-	retryBackoff := backoff.WithMaxRetries(
-		backoff.NewExponentialBackOff(
-			backoff.WithInitialInterval(1*time.Second),
-			backoff.WithMaxInterval(5*time.Second),
-		),
-		3,
-	)
-
-	operation := func() error {
-		return c.trySendBatch(sendBuffer)
-	}
-
-	// Выполнение с повторными попытками
-	if err := backoff.Retry(operation, retryBackoff); err == nil {
-		c.buffer = c.buffer[:0] // Очищаем только при успехе
-	}
-}
-
-func (c *Collector) StartFlusher(interval time.Duration) {
-	go func() {
-		ticker := time.NewTicker(interval)
-		for range ticker.C {
-			c.mu.Lock()
-			if len(c.buffer) > 0 {
-				go c.sendBatch()
-			}
-			c.mu.Unlock()
+	// Отправляем gauge метрики
+	for name, value := range c.gauge {
+		metric := model.Metrics{
+			ID:    name,
+			MType: model.TypeGauge,
+			Value: &value,
 		}
-	}()
-}
-
-func (c *Collector) trySendBatch(buffer []model.Metrics) error {
-	body, err := json.Marshal(buffer)
-	if err != nil {
-		return backoff.Permanent(err) // Неповторяемая ошибка
-	}
-
-	compressed := Compress(body)
-	req, err := http.NewRequest("POST", c.endpoint+"/updates", bytes.NewReader(compressed))
-	if err != nil {
-		return backoff.Permanent(err)
-	}
-
-	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		// Повторяем для временных ошибок сети
-		if isRetriableError(err) {
-			return err
+		if err := client.SendMetric(metric); err != nil {
+			log.Printf("Failed to send gauge metric %s: %v", name, err)
 		}
-		return backoff.Permanent(err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode >= 500 {
-		return fmt.Errorf("server error: %d", resp.StatusCode)
+	// Отправляем counter метрики
+	for name, value := range c.counter {
+		metric := model.Metrics{
+			ID:    name,
+			MType: model.TypeCounter,
+			Delta: &value,
+		}
+		if err := client.SendMetric(metric); err != nil {
+			log.Printf("Failed to send counter metric %s: %v", name, err)
+		}
 	}
+
 	return nil
-}
-
-func isRetriableError(err error) bool {
-	var netErr net.Error
-	return errors.As(err, &netErr) && netErr.Timeout()
 }

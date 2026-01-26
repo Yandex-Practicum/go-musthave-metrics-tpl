@@ -13,14 +13,14 @@ type Server struct {
 	router *chi.Mux
 }
 
-func NewServer(h *handlers.Handlers, dbPingFunc func(context.Context) error) *Server {
+func NewServer(h *handlers.MetricHandlers, dbPingFunc func(context.Context) error) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 
-	r.Get("/ping", h.PingHandler())
+	r.Get("/ping", h.PingHandler)
 	// Добавьте другие роуты
 
 	return &Server{router: r}

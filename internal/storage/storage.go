@@ -5,8 +5,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-
-	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/model"
 )
 
 // ErrMetricNotFound is returned when a requested metric is not found.
@@ -108,7 +106,12 @@ func (m *MemStorage) GetAllMetrics() (map[string]float64, map[string]int64) {
 	return gaugesCopy, countersCopy
 }
 
-func (m *MetricsStorage) Ping(ctx context.Context) error {
+func (m *MemStorage) Ping(ctx context.Context) error {
 	// Для in-memory хранилища всегда возвращаем успешный ping
+	return nil
+}
+
+func (m *MemStorage) Close() error {
+	// Для in-memory хранилища ничего не нужно делать
 	return nil
 }

@@ -19,6 +19,8 @@ type ServerConfig struct {
 	Restore       bool          `env:"RESTORE"`
 	DatabaseDSN   string        `env:"DATABASE_DSN"`
 	RateLimit     int           `env:"RATE_LIMIT"`
+	AuditFile     string        `env:"AUDIT_FILE"`
+	AuditURL      string        `env:"AUDIT_URL"`
 }
 
 type Config struct {
