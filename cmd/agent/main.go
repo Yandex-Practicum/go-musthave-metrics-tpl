@@ -15,6 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/agent"
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/config"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/logger"
 
 	"github.com/go-chi/chi/v5"
@@ -69,12 +70,13 @@ func run() error {
 
 	collector := agent.NewCollector()
 
-	serverURL := cfg.ServerAddress
-	if len(serverURL) < 7 || (serverURL[:7] != "http://" && serverURL[:8] != "https://") {
-		serverURL = "http://" + serverURL
+	// Создаем конфиг для сервера
+	serverCfg := &config.ServerConfig{
+		Address: cfg.ServerAddress,
 	}
 
-	sender := agent.NewSender(serverURL)
+	// Создаем HTTP клиент для отправки метрик
+	httpClient := agent.NewHTTPClient(serverCfg)
 
 	// Router и middleware с логированием
 	r := chi.NewRouter()
@@ -118,14 +120,8 @@ func run() error {
 				log.Info().Msg("Stopping metrics reporting...")
 				return
 			case <-ticker.C:
-				gauges := collector.GetGauges()
-				counters := collector.GetCounters()
-				if len(gauges) == 0 && len(counters) == 0 {
-					log.Info().Msg("No metrics to send")
-					continue
-				}
-				log.Info().Str("Sending metrics to %s", serverURL)
-				if err := sender.SendAllMetrics(gauges, counters); err != nil {
+				// Используем метод SendMetrics из коллектора, который будет использовать HTTP клиент
+				if err := collector.SendMetrics(httpClient, cfg.ServerAddress); err != nil {
 					log.Info().Msgf("Failed to send metrics: %v", err)
 				} else {
 					log.Info().Msg("Successfully sent all metrics")

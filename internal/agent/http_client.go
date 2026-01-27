@@ -1,9 +1,6 @@
 package agent
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -18,7 +15,13 @@ type HTTPClient struct {
 }
 
 func (c *HTTPClient) SendBatch(metricsBatch []model.Metrics) error {
-	panic("unimplemented")
+	// Для простоты реализации отправим по одной метрике
+	for _, metric := range metricsBatch {
+		if err := c.SendMetric(metric); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewHTTPClient(cfg *config.ServerConfig) *HTTPClient {
@@ -29,22 +32,31 @@ func NewHTTPClient(cfg *config.ServerConfig) *HTTPClient {
 }
 
 func (c *HTTPClient) SendMetric(m model.Metrics) error {
-	body, err := json.Marshal(m)
+	// Формат данных — http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
+	var url string
+	if m.MType == model.TypeGauge {
+		url = fmt.Sprintf("http://%s/update/%s/%s/%f", c.cfg.Address, m.MType, m.ID, *m.Value)
+	} else if m.MType == model.TypeCounter {
+		url = fmt.Sprintf("http://%s/update/%s/%s/%d", c.cfg.Address, m.MType, m.ID, *m.Delta)
+	}
+
+	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", c.cfg.Address, bytes.NewReader(body))
+	// Устанавливаем заголовок
+	req.Header.Set("Content-Type", "text/plain")
+
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
-	if c.cfg.Key != "" {
-		hash := sha256.Sum256(append(body, []byte(c.cfg.Key)...))
-		req.Header.Set("HashSHA256", fmt.Sprintf("%x", hash))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("server returned non-OK status: %d", resp.StatusCode)
 	}
 
-	c.client.Do(req)
-	// ... обработка ответа
 	return nil
 }
