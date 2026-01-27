@@ -22,12 +22,13 @@ import (
 	"net/http/httptest"
 
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/audit"
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/storage"
 )
 
 // ExampleJSONUpdate demonstrates how to update metrics using JSON API.
 func Example_jsonUpdate() {
 	// Create a new storage
-	storage := NewMetricsStorage()
+	storage := storage.NewMemStorage()
 
 	// Create a new server
 	server := NewServer(storage, &ServerConfig{
@@ -71,10 +72,10 @@ func Example_jsonUpdate() {
 // ExampleJSONValue demonstrates how to retrieve metrics using JSON API.
 func Example_jsonValue() {
 	// Create a new storage
-	storage := NewMetricsStorage()
+	storage := storage.NewMemStorage()
 
 	// First update a gauge metric
-	storage.gauges["test_gauge"] = 42.5
+	storage.UpdateGauge("test_gauge", 42.5)
 
 	// Create a new server
 	server := NewServer(storage, &ServerConfig{
@@ -117,7 +118,7 @@ func Example_jsonValue() {
 // ExamplePeriodicSave demonstrates periodic saving of metrics.
 func Example_periodicSave() {
 	// Create a new storage
-	storage := NewMetricsStorage()
+	storage := storage.NewMemStorage()
 
 	// Create a new server with periodic save
 	_ = NewServer(storage, &ServerConfig{
@@ -131,7 +132,7 @@ func Example_periodicSave() {
 	}, []audit.Auditor{})
 
 	// Simulate updating a metric
-	storage.gauges["example_gauge"] = 100.0
+	storage.UpdateGauge("example_gauge", 100.0)
 
 	// In real usage, the periodic save would happen automatically
 	// This example shows how to configure it

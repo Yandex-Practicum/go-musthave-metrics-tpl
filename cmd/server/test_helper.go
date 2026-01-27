@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/audit"
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/storage"
 )
 
 // TestableRun запускает сервер для тестирования с проверкой готовности
@@ -20,7 +21,7 @@ func TestableRun() error {
 	}
 
 	// Создаем зависимости
-	storage := NewMetricsStorage()
+	storage := storage.NewMemStorage()
 
 	// Инициализация аудиторов
 	var auditors []audit.Auditor
@@ -48,31 +49,27 @@ func TestableRun() error {
 		}
 	}
 	// Восстановление при старте (если включено)
-	if config.FileStorage != "" && config.Restore {
-		if err := storage.RestoreFromFile(config.FileStorage); err != nil {
-			// Failed to restore from file
-		} else {
-			// Restored metrics from file
-		}
-	}
+	// Note: RestoreFromFile не реализован в интерфейсе Storage, поэтому убираем эту часть
 
 	// Фоновое периодическое сохранение или синхронная запись
 	if config.FileStorage != "" {
 		if config.StoreInterval == 0 {
 			// Store interval = 0: synchronous writes enabled
+			// Note: SaveToFile не реализован в интерфейсе Storage, поэтому убираем эту часть
 		} else {
 			// периодическое сохранение
-			go func() {
-				ticker := time.NewTicker(config.StoreInterval)
-				defer ticker.Stop()
-				for range ticker.C {
-					if err := storage.SaveToFile(config.FileStorage); err != nil {
-						// Failed to save metrics
-					} else {
-						// Saved metrics to file
-					}
-				}
-			}()
+			// Note: SaveToFile не реализован в интерфейсе Storage, поэтому убираем эту часть
+			// go func() {
+			// 	ticker := time.NewTicker(config.StoreInterval)
+			// 	defer ticker.Stop()
+			// 	for range ticker.C {
+			// 		if err := storage.SaveToFile(config.FileStorage); err != nil {
+			// 			// Failed to save metrics
+			// 		} else {
+			// 			// Saved metrics to file
+			// 		}
+			// 	}
+			// }()
 		}
 	}
 
