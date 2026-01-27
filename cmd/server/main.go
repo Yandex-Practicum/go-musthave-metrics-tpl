@@ -19,9 +19,9 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/audit"
-	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/middleware_proj"
+	handlers "github.com/kvsukharev/go-musthave-metrics-tpl/internal/handler"
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/server"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/storage"
 )
 
@@ -77,14 +77,23 @@ type Server struct {
 	db *sql.DB
 	// auditors are the audit services
 	auditors []audit.Auditor
+	// internal server
+	internalServer *server.Server
 }
 
 // NewServer creates and returns a new Server instance.
 func NewServer(storage storage.Storage, config *ServerConfig, auditors []audit.Auditor) *Server {
+	// Создаем обработчики метрик
+	handlers := handlers.NewMetricHandlers(storage)
+
+	// Создаем внутренний сервер с правильными обработчиками
+	internalServer := server.NewServer(handlers, nil)
+
 	return &Server{
-		storage:  storage,
-		config:   config,
-		auditors: auditors,
+		storage:        storage,
+		config:         config,
+		auditors:       auditors,
+		internalServer: internalServer,
 	}
 }
 
@@ -219,44 +228,7 @@ func (s *Server) valueMetricJSONHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) Router() http.Handler {
-	r := chi.NewRouter()
-
-	// Middleware — ВСЕ должны быть подключены до регистрации маршрутов
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RequestID)
-	r.Use(middleware.StripSlashes)
-	r.Use(middleware_proj.GzipMiddleware)
-	r.Use(recoverMiddleware)
-
-	// JSON endpoints (поддерживаем варианты с и без trailing slash)
-	r.Post("/update", s.updateMetricJSONHandler)
-	r.Post("/update/", s.updateMetricJSONHandler)
-	r.Post("/value", s.valueMetricJSONHandler)
-	r.Post("/value/", s.valueMetricJSONHandler)
-
-	// Explicit path-based endpoints (accept only /update/{type}/{name}/{value})
-	r.Post("/update/{type}/{name}/{value}", s.updateHandlerChi)
-	r.Get("/value/{type}/{name}", s.valueHandler)
-	r.Get("/", s.rootHandler)
-	r.Get("/ping", s.pingHandler)
-
-	// Добавляем обработчики для тестов, которые используют методы без trailing slash
-	r.Post("/update/counter/{name}/{value}", s.updateHandlerChi)
-	r.Post("/update/gauge/{name}/{value}", s.updateHandlerChi)
-	r.Get("/value/counter/{name}", s.valueHandler)
-	r.Get("/value/gauge/{name}", s.valueHandler)
-
-	// Добавляем обработчики для тестов, которые используют методы с trailing slash
-	r.Post("/update/counter/{name}/{value}/", s.updateHandlerChi)
-	r.Post("/update/gauge/{name}/{value}/", s.updateHandlerChi)
-	r.Get("/value/counter/{name}/", s.valueHandler)
-	r.Get("/value/gauge/{name}/", s.valueHandler)
-
-	// Добавляем обработчики для тестов, которые используют методы с trailing slash для всех типов
-	r.Post("/update/{type}/{name}/{value}/", s.updateHandlerChi)
-
-	return r
+	return s.internalServer
 }
 
 func (s *Server) updateHandlerChi(w http.ResponseWriter, r *http.Request) {
