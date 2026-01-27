@@ -81,12 +81,10 @@ type Server struct {
 
 // NewServer creates and returns a new Server instance.
 func NewServer(storage storage.Storage, config *ServerConfig, auditors []audit.Auditor) *Server {
-	handlers := handler.NewMetricHandlers(storage)
 	return &Server{
 		storage:  storage,
 		config:   config,
 		auditors: auditors,
-		handlers: handlers,
 	}
 }
 
@@ -238,25 +236,25 @@ func (s *Server) Router() http.Handler {
 	r.Post("/value/", s.valueMetricJSONHandler)
 
 	// Explicit path-based endpoints (accept only /update/{type}/{name}/{value})
-	r.Post("/update/{type}/{name}/{value}", s.handlers.UpdateHandler)
-	r.Get("/value/{type}/{name}", s.handlers.ValueHandler)
-	r.Get("/", s.handlers.RootHandler)
-	r.Get("/ping", s.handlers.PingHandler)
+	r.Post("/update/{type}/{name}/{value}", s.updateHandlerChi)
+	r.Get("/value/{type}/{name}", s.valueHandler)
+	r.Get("/", s.rootHandler)
+	r.Get("/ping", s.pingHandler)
 
 	// Добавляем обработчики для тестов, которые используют методы без trailing slash
-	r.Post("/update/counter/{name}/{value}", s.handlers.UpdateHandler)
-	r.Post("/update/gauge/{name}/{value}", s.handlers.UpdateHandler)
-	r.Get("/value/counter/{name}", s.handlers.ValueHandler)
-	r.Get("/value/gauge/{name}", s.handlers.ValueHandler)
+	r.Post("/update/counter/{name}/{value}", s.updateHandlerChi)
+	r.Post("/update/gauge/{name}/{value}", s.updateHandlerChi)
+	r.Get("/value/counter/{name}", s.valueHandler)
+	r.Get("/value/gauge/{name}", s.valueHandler)
 
 	// Добавляем обработчики для тестов, которые используют методы с trailing slash
-	r.Post("/update/counter/{name}/{value}/", s.handlers.UpdateHandler)
-	r.Post("/update/gauge/{name}/{value}/", s.handlers.UpdateHandler)
-	r.Get("/value/counter/{name}/", s.handlers.ValueHandler)
-	r.Get("/value/gauge/{name}/", s.handlers.ValueHandler)
+	r.Post("/update/counter/{name}/{value}/", s.updateHandlerChi)
+	r.Post("/update/gauge/{name}/{value}/", s.updateHandlerChi)
+	r.Get("/value/counter/{name}/", s.valueHandler)
+	r.Get("/value/gauge/{name}/", s.valueHandler)
 
 	// Добавляем обработчики для тестов, которые используют методы с trailing slash для всех типов
-	r.Post("/update/{type}/{name}/{value}/", s.handlers.UpdateHandler)
+	r.Post("/update/{type}/{name}/{value}/", s.updateHandlerChi)
 
 	return r
 }
