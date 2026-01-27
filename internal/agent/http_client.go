@@ -35,7 +35,7 @@ func (c *HTTPClient) SendMetric(m model.Metrics) error {
 	// Формат данных — http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 	var url string
 	if m.MType == model.TypeGauge {
-		url = fmt.Sprintf("http://%s/update/%s/%s/%f", c.cfg.Address, m.MType, m.ID, *m.Value)
+		url = fmt.Sprintf("http://%s/update/%s/%s/%.6f", c.cfg.Address, m.MType, m.ID, *m.Value)
 	} else if m.MType == model.TypeCounter {
 		url = fmt.Sprintf("http://%s/update/%s/%s/%d", c.cfg.Address, m.MType, m.ID, *m.Delta)
 	}
