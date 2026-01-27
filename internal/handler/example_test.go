@@ -39,7 +39,7 @@ func Example_updateGauge() {
 	w := httptest.NewRecorder()
 
 	// Call the handler
-	handler.updateHandler(w, req)
+	handler.UpdateHandler(w, req)
 
 	// Print the response
 	fmt.Printf("Status: %d\n", w.Code)
@@ -65,7 +65,7 @@ func Example_updateCounter() {
 	w := httptest.NewRecorder()
 
 	// Call the handler
-	handler.updateHandler(w, req)
+	handler.UpdateHandler(w, req)
 
 	// Print the response
 	fmt.Printf("Status: %d\n", w.Code)
@@ -94,7 +94,7 @@ func Example_getGauge() {
 	w := httptest.NewRecorder()
 
 	// Call the handler
-	handler.valueHandler(w, req)
+	handler.ValueHandler(w, req)
 
 	// Print the response
 	fmt.Printf("Status: %d\n", w.Code)
@@ -123,7 +123,7 @@ func Example_getCounter() {
 	w := httptest.NewRecorder()
 
 	// Call the handler
-	handler.valueHandler(w, req)
+	handler.ValueHandler(w, req)
 
 	// Print the response
 	fmt.Printf("Status: %d\n", w.Code)
@@ -146,7 +146,7 @@ func TestExamples(t *testing.T) {
 	// Test update gauge
 	req := httptest.NewRequest("POST", "/update/gauge/test/42.5", nil)
 	w := httptest.NewRecorder()
-	handler.updateHandler(w, req)
+	handler.UpdateHandler(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
@@ -155,7 +155,7 @@ func TestExamples(t *testing.T) {
 	// Test get gauge
 	req = httptest.NewRequest("GET", "/value/gauge/test", nil)
 	w = httptest.NewRecorder()
-	handler.valueHandler(w, req)
+	handler.ValueHandler(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
