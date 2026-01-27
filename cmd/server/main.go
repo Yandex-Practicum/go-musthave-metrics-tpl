@@ -248,6 +248,12 @@ func (s *Server) updateHandlerChi(w http.ResponseWriter, r *http.Request) {
 	metricName := chi.URLParam(r, "name")
 	metricValue := chi.URLParam(r, "value")
 
+	// Проверка на пустые параметры
+	if metricType == "" || metricName == "" || metricValue == "" {
+		http.Error(w, "Missing required parameters", http.StatusNotFound)
+		return
+	}
+
 	s.updateMetric(w, metricType, metricName, metricValue)
 }
 
@@ -309,6 +315,12 @@ func (s *Server) updateMetric(w http.ResponseWriter, metricType, metricName, met
 func (s *Server) valueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
+
+	// Проверка наличия параметров
+	if metricType == "" || metricName == "" {
+		http.Error(w, "Missing required parameters", http.StatusNotFound)
+		return
+	}
 
 	// Проверка наличия имени метрики
 	if metricName == "" {
@@ -520,21 +532,6 @@ func run() error {
 	time.Sleep(100 * time.Millisecond)
 
 	// Проверяем, что сервер запущен
-	conn, err := net.DialTimeout("tcp", config.Address, 1*time.Second)
-	if err != nil {
-		log.Printf("Server failed to start: %v", err)
-		// Возвращаем ошибку, чтобы тесты могли обработать
-		return fmt.Errorf("server failed to start: %w", err)
-	}
-	conn.Close()
-
-	// Ожидаем завершения
-	// select {} - убираем, так как это блокирует выполнение
-	// Вместо этого возвращаем nil, чтобы тесты могли работать
-	// Но для корректной работы тестов нужно убедиться, что сервер запущен
-	// Возвращаем nil, чтобы тесты могли продолжить выполнение
-	// Однако, для корректной работы тестов, нам нужно дождаться, пока сервер действительно начнет слушать порт
-	// Проверим, что сервер действительно слушает порт
 	ready := make(chan struct{})
 	go func() {
 		for {

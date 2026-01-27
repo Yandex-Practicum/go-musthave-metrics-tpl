@@ -1,7 +1,12 @@
 [
   {
+    "id": "testGauge",
+    "type": "gauge",
+    "value": 100
+  },
+  {
     "id": "testCounter",
     "type": "counter",
-    "delta": 200
+    "delta": 300
   }
 ]
