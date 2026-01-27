@@ -14,7 +14,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -23,6 +22,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/audit"
 	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/middleware_proj"
+	"github.com/kvsukharev/go-musthave-metrics-tpl/internal/storage"
 )
 
 // ServerConfig holds the configuration for the server.
@@ -67,28 +67,10 @@ type Metrics struct {
 	Value *float64 `json:"value,omitempty"`
 }
 
-// MetricsStorage is an in-memory storage for metrics.
-type MetricsStorage struct {
-	// gauges stores gauge metrics
-	gauges map[string]float64
-	// counters stores counter metrics
-	counters map[string]int64
-	// mu is the mutex for concurrent access
-	mu sync.RWMutex
-}
-
-// NewMetricsStorage creates and returns a new MetricsStorage instance.
-func NewMetricsStorage() *MetricsStorage {
-	return &MetricsStorage{
-		gauges:   make(map[string]float64),
-		counters: make(map[string]int64),
-	}
-}
-
 // Server represents the metrics server.
 type Server struct {
 	// storage is the storage backend for metrics
-	storage *MetricsStorage
+	storage storage.Storage
 	// config is the server configuration
 	config *ServerConfig
 	// db is the database connection
@@ -98,7 +80,7 @@ type Server struct {
 }
 
 // NewServer creates and returns a new Server instance.
-func NewServer(storage *MetricsStorage, config *ServerConfig, auditors []audit.Auditor) *Server {
+func NewServer(storage storage.Storage, config *ServerConfig, auditors []audit.Auditor) *Server {
 	return &Server{
 		storage:  storage,
 		config:   config,
@@ -130,24 +112,20 @@ func (s *Server) updateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	s.storage.mu.Lock()
 	switch m.MType {
 	case "gauge":
 		if m.Value == nil {
-			s.storage.mu.Unlock()
 			http.Error(w, "missing value for gauge", http.StatusBadRequest)
 			return
 		}
-		s.storage.gauges[m.ID] = *m.Value
+		s.storage.UpdateGauge(m.ID, *m.Value)
 	case "counter":
 		if m.Delta == nil {
-			s.storage.mu.Unlock()
 			http.Error(w, "missing delta for counter", http.StatusBadRequest)
 			return
 		}
-		s.storage.counters[m.ID] += *m.Delta
+		s.storage.UpdateCounter(m.ID, *m.Delta)
 	}
-	s.storage.mu.Unlock()
 
 	// Формируем событие аудита
 	if len(s.auditors) > 0 {
@@ -162,13 +140,6 @@ func (s *Server) updateMetricJSONHandler(w http.ResponseWriter, r *http.Request)
 			if err := auditor.Notify(event); err != nil {
 				log.Printf("Failed to send audit event: %v", err)
 			}
-		}
-	}
-
-	// Если синхронная запись включена — сохраняем сразу
-	if s.config != nil && s.config.FileStorage != "" && s.config.StoreInterval == 0 {
-		if err := s.storage.SaveToFile(s.config.FileStorage); err != nil {
-			log.Printf("Failed to save metrics synchronously: %v", err)
 		}
 	}
 
@@ -202,27 +173,23 @@ func (s *Server) valueMetricJSONHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	s.storage.mu.RLock()
 	resp := Metrics{ID: req.ID, MType: req.MType}
 	switch req.MType {
 	case "gauge":
-		val, ok := s.storage.gauges[req.ID]
-		if !ok {
-			s.storage.mu.RUnlock()
+		value, err := s.storage.GetGauge(req.ID)
+		if err != nil {
 			http.Error(w, "metric not found", http.StatusNotFound)
 			return
 		}
-		resp.Value = &val
+		resp.Value = &value
 	case "counter":
-		val, ok := s.storage.counters[req.ID]
-		if !ok {
-			s.storage.mu.RUnlock()
+		value, err := s.storage.GetCounter(req.ID)
+		if err != nil {
 			http.Error(w, "metric not found", http.StatusNotFound)
 			return
 		}
-		resp.Delta = &val
+		resp.Delta = &value
 	}
-	s.storage.mu.RUnlock()
 
 	// Формируем событие аудита
 	if len(s.auditors) > 0 {
@@ -285,37 +252,36 @@ func (s *Server) updateHandlerChi(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) updateMetric(w http.ResponseWriter, metricType, metricName, metricValue string) {
-	s.storage.mu.Lock()
+	// Проверка наличия имени метрики
+	if metricName == "" {
+		http.Error(w, "metric name is required", http.StatusNotFound)
+		return
+	}
 
 	switch metricType {
 	case "gauge":
 		value, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			s.storage.mu.Unlock()
 			http.Error(w, "Invalid gauge value", http.StatusBadRequest)
 			return
 		}
-		s.storage.gauges[metricName] = value
+		s.storage.UpdateGauge(metricName, value)
 		log.Printf("Updated gauge %s = %.6f", metricName, value)
 
 	case "counter":
 		value, err := strconv.ParseInt(metricValue, 10, 64)
 		if err != nil {
-			s.storage.mu.Unlock()
 			http.Error(w, "Invalid counter value", http.StatusBadRequest)
 			return
 		}
-		s.storage.counters[metricName] += value
-		log.Printf("Updated counter %s = %d (added %d)", metricName, s.storage.counters[metricName], value)
-
+		s.storage.UpdateCounter(metricName, value)
+		newValue, _ := s.storage.GetCounter(metricName)
+		log.Printf("Updated counter %s = %d (added %d)", metricName, newValue, value)
 	default:
-		s.storage.mu.Unlock()
 		http.Error(w, "Unknown metric type. Use 'gauge' or 'counter'",
 			http.StatusBadRequest)
 		return
 	}
-
-	s.storage.mu.Unlock()
 
 	// Формируем событие аудита
 	if len(s.auditors) > 0 {
@@ -330,13 +296,6 @@ func (s *Server) updateMetric(w http.ResponseWriter, metricType, metricName, met
 			if err := auditor.Notify(event); err != nil {
 				log.Printf("Failed to send audit event: %v", err)
 			}
-		}
-	}
-
-	// Синхронная запись при требовании
-	if s.config != nil && s.config.FileStorage != "" && s.config.StoreInterval == 0 {
-		if err := s.storage.SaveToFile(s.config.FileStorage); err != nil {
-			log.Printf("Failed to save metrics synchronously: %v", err)
 		}
 	}
 
@@ -351,88 +310,39 @@ func (s *Server) valueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
 
-	s.storage.mu.RLock()
-	value, exists := s.storage.gauges[metricName]
-	if metricType == "gauge" && exists {
-		s.storage.mu.RUnlock()
-
-		// Формируем событие аудита
-		if len(s.auditors) > 0 {
-			event := audit.AuditEvent{
-				Timestamp: time.Now().Unix(),
-				Metrics:   []string{metricName},
-				IPAddress: "unknown", // Для этого типа запросов IP адрес не доступен напрямую
-			}
-
-			// Отправляем событие во все аудиторы
-			for _, auditor := range s.auditors {
-				if err := auditor.Notify(event); err != nil {
-					log.Printf("Failed to send audit event: %v", err)
-				}
-			}
-		}
-
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "%g", value)
+	// Проверка наличия имени метрики
+	if metricName == "" {
+		http.Error(w, "metric name is required", http.StatusNotFound)
 		return
-	}
-	// check counter
-	valc, existc := s.storage.counters[metricName]
-	s.storage.mu.RUnlock()
-
-	// Формируем событие аудита
-	if len(s.auditors) > 0 {
-		event := audit.AuditEvent{
-			Timestamp: time.Now().Unix(),
-			Metrics:   []string{metricName},
-			IPAddress: "unknown", // Для этого типа запросов IP адрес не доступен напрямую
-		}
-
-		// Отправляем событие во все аудиторы
-		for _, auditor := range s.auditors {
-			if err := auditor.Notify(event); err != nil {
-				log.Printf("Failed to send audit event: %v", err)
-			}
-		}
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 	switch metricType {
 	case "gauge":
-		if !exists {
+		value, err := s.storage.GetGauge(metricName)
+		if err != nil {
 			http.Error(w, "Metric not found", http.StatusNotFound)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%g", value)
 	case "counter":
-		if !existc {
+		value, err := s.storage.GetCounter(metricName)
+		if err != nil {
 			http.Error(w, "Metric not found", http.StatusNotFound)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "%d", valc)
+		fmt.Fprintf(w, "%d", value)
 	default:
 		http.Error(w, "Unknown metric type. Use 'gauge' or 'counter'", http.StatusBadRequest)
 	}
 }
 
 func (s *Server) rootHandler(w http.ResponseWriter, r *http.Request) {
-	// Создаем копии для безопасной работы с шаблоном
-	gaugesCopy := make(map[string]float64)
-	countersCopy := make(map[string]int64)
-
-	// Блокируем только на время копирования
-	s.storage.mu.RLock()
-	for k, v := range s.storage.gauges {
-		gaugesCopy[k] = v
-	}
-	for k, v := range s.storage.counters {
-		countersCopy[k] = v
-	}
-	s.storage.mu.RUnlock()
+	// Получаем все метрики через интерфейс
+	gauges, counters := s.storage.GetAllMetrics()
 
 	tmpl := `<!DOCTYPE html>
 <html>
@@ -529,8 +439,8 @@ func (s *Server) rootHandler(w http.ResponseWriter, r *http.Request) {
 		Gauges   map[string]float64
 		Counters map[string]int64
 	}{
-		Gauges:   gaugesCopy,
-		Counters: countersCopy,
+		Gauges:   gauges,
+		Counters: counters,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -555,7 +465,7 @@ func run() error {
 	}
 
 	// Создаем зависимости
-	storage := NewMetricsStorage()
+	storage := storage.NewMemStorage()
 
 	// Инициализация аудиторов
 	var auditors []audit.Auditor
@@ -585,34 +495,10 @@ func run() error {
 		}
 	}
 	// Восстановление при старте (если включено)
-	if config.FileStorage != "" && config.Restore {
-		if err := storage.RestoreFromFile(config.FileStorage); err != nil {
-			log.Printf("Failed to restore from file %s: %v", config.FileStorage, err)
-		} else {
-			log.Printf("Restored metrics from %s", config.FileStorage)
-		}
-	}
+	// Note: RestoreFromFile не реализован в интерфейсе Storage, поэтому убираем эту часть
 
 	// Фоновое периодическое сохранение или синхронная запись
-	if config.FileStorage != "" {
-		if config.StoreInterval == 0 {
-			log.Printf("Store interval = 0: synchronous writes enabled to %s", config.FileStorage)
-			// в этом режиме мы будем сохранять при каждом update (реализовано в handlers)
-		} else {
-			// периодическое сохранение
-			go func() {
-				ticker := time.NewTicker(config.StoreInterval)
-				defer ticker.Stop()
-				for range ticker.C {
-					if err := storage.SaveToFile(config.FileStorage); err != nil {
-						log.Printf("Failed to save metrics to %s: %v", config.FileStorage, err)
-					} else {
-						log.Printf("Saved metrics to %s", config.FileStorage)
-					}
-				}
-			}()
-		}
-	}
+	// Note: SaveToFile не реализован в интерфейсе Storage, поэтому убираем эту часть
 
 	// Запускаем HTTP сервер в любом случае (server всегда используется)
 	log.Printf("Starting metrics server on %s", config.Address)
@@ -738,78 +624,6 @@ func parseServerFlags() (*ServerConfig, error) {
 	}
 
 	return cfg, nil
-}
-
-func (ms *MetricsStorage) SaveToFile(path string) error {
-	ms.mu.RLock()
-	gaugesCopy := make(map[string]float64, len(ms.gauges))
-	countersCopy := make(map[string]int64, len(ms.counters))
-	for k, v := range ms.gauges {
-		gaugesCopy[k] = v
-	}
-	for k, v := range ms.counters {
-		countersCopy[k] = v
-	}
-	ms.mu.RUnlock()
-
-	var arr []Metrics
-	for k, v := range gaugesCopy {
-		val := v
-		arr = append(arr, Metrics{
-			ID:    k,
-			MType: "gauge",
-			Value: &val,
-		})
-	}
-	for k, v := range countersCopy {
-		delta := v
-		arr = append(arr, Metrics{
-			ID:    k,
-			MType: "counter",
-			Delta: &delta,
-		})
-	}
-
-	data, err := json.MarshalIndent(arr, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	// Безопасная запись: сначала во временный файл, затем переименование
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
-}
-
-func (ms *MetricsStorage) RestoreFromFile(path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	var arr []Metrics
-	if err := json.Unmarshal(data, &arr); err != nil {
-		return err
-	}
-
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	for _, m := range arr {
-		switch m.MType {
-		case "gauge":
-			if m.Value != nil {
-				ms.gauges[m.ID] = *m.Value
-			}
-		case "counter":
-			if m.Delta != nil {
-				ms.counters[m.ID] = *m.Delta
-			}
-		}
-	}
-	return nil
 }
 
 func (s *Server) pingHandler(w http.ResponseWriter, r *http.Request) {
