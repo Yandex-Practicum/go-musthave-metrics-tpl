@@ -227,6 +227,7 @@ func (s *Server) Router() http.Handler {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware_proj.GzipMiddleware)
+	r.Use(recoverMiddleware)
 
 	// JSON endpoints (поддерживаем варианты с и без trailing slash)
 	r.Post("/update", s.updateMetricJSONHandler)
@@ -240,6 +241,12 @@ func (s *Server) Router() http.Handler {
 	r.Get("/", s.rootHandler)
 	r.Get("/ping", s.pingHandler)
 
+	// Добавляем обработчики для тестов, которые используют методы без trailing slash
+	r.Post("/update/counter/{name}/{value}", s.updateHandlerChi)
+	r.Post("/update/gauge/{name}/{value}", s.updateHandlerChi)
+	r.Get("/value/counter/{name}", s.valueHandler)
+	r.Get("/value/gauge/{name}", s.valueHandler)
+
 	return r
 }
 
@@ -249,8 +256,14 @@ func (s *Server) updateHandlerChi(w http.ResponseWriter, r *http.Request) {
 	metricValue := chi.URLParam(r, "value")
 
 	// Проверка на пустые параметры
-	if metricType == "" || metricName == "" || metricValue == "" {
+	if metricType == "" || metricName == "" {
 		http.Error(w, "Missing required parameters", http.StatusNotFound)
+		return
+	}
+
+	// Для случая, когда значение отсутствует (например, /update/counter/testCounter/)
+	if metricValue == "" {
+		http.Error(w, "Missing value parameter", http.StatusNotFound)
 		return
 	}
 
@@ -312,6 +325,19 @@ func (s *Server) updateMetric(w http.ResponseWriter, metricType, metricName, met
 	fmt.Fprint(w, responseText)
 }
 
+// recoverMiddleware перехватывает паники и возвращает 500 ошибку
+func recoverMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("panic recovered: %v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) valueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
@@ -319,12 +345,6 @@ func (s *Server) valueHandler(w http.ResponseWriter, r *http.Request) {
 	// Проверка наличия параметров
 	if metricType == "" || metricName == "" {
 		http.Error(w, "Missing required parameters", http.StatusNotFound)
-		return
-	}
-
-	// Проверка наличия имени метрики
-	if metricName == "" {
-		http.Error(w, "metric name is required", http.StatusNotFound)
 		return
 	}
 
