@@ -557,6 +557,7 @@ func run() error {
 	select {
 	case <-ready:
 		// Сервер готов
+		log.Printf("Server is ready and listening on %s", config.Address)
 		return nil
 	case <-time.After(5 * time.Second):
 		// Timeout - сервер не готов
