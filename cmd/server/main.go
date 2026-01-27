@@ -247,6 +247,15 @@ func (s *Server) Router() http.Handler {
 	r.Get("/value/counter/{name}", s.valueHandler)
 	r.Get("/value/gauge/{name}", s.valueHandler)
 
+	// Добавляем обработчики для тестов, которые используют методы с trailing slash
+	r.Post("/update/counter/{name}/{value}/", s.updateHandlerChi)
+	r.Post("/update/gauge/{name}/{value}/", s.updateHandlerChi)
+	r.Get("/value/counter/{name}/", s.valueHandler)
+	r.Get("/value/gauge/{name}/", s.valueHandler)
+
+	// Добавляем обработчики для тестов, которые используют методы с trailing slash для всех типов
+	r.Post("/update/{type}/{name}/{value}/", s.updateHandlerChi)
+
 	return r
 }
 
@@ -256,8 +265,14 @@ func (s *Server) updateHandlerChi(w http.ResponseWriter, r *http.Request) {
 	metricValue := chi.URLParam(r, "value")
 
 	// Проверка на пустые параметры
-	if metricType == "" || metricName == "" {
-		http.Error(w, "Missing required parameters", http.StatusNotFound)
+	if metricType == "" {
+		http.Error(w, "Missing metric type parameter", http.StatusNotFound)
+		return
+	}
+
+	// Для случая, когда имя метрики отсутствует (например, /update/counter/)
+	if metricName == "" {
+		http.Error(w, "Missing metric name parameter", http.StatusNotFound)
 		return
 	}
 
@@ -343,8 +358,13 @@ func (s *Server) valueHandler(w http.ResponseWriter, r *http.Request) {
 	metricName := chi.URLParam(r, "name")
 
 	// Проверка наличия параметров
-	if metricType == "" || metricName == "" {
-		http.Error(w, "Missing required parameters", http.StatusNotFound)
+	if metricType == "" {
+		http.Error(w, "Missing metric type parameter", http.StatusNotFound)
+		return
+	}
+
+	if metricName == "" {
+		http.Error(w, "Missing metric name parameter", http.StatusNotFound)
 		return
 	}
 
@@ -548,20 +568,17 @@ func run() error {
 		}
 	}()
 
-	// Ждем немного, чтобы сервер успел запуститься
-	time.Sleep(100 * time.Millisecond)
-
 	// Проверяем, что сервер запущен
 	ready := make(chan struct{})
 	go func() {
-		for {
+		for i := 0; i < 50; i++ { // Проверяем 50 раз по 100мс = 5 секунд
 			conn, err := net.DialTimeout("tcp", config.Address, 100*time.Millisecond)
 			if err == nil {
 				conn.Close()
 				ready <- struct{}{}
-				break
+				return
 			}
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 
