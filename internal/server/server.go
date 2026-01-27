@@ -20,8 +20,26 @@ func NewServer(h *handlers.MetricHandlers, dbPingFunc func(context.Context) erro
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 
+	// Регистрация маршрутов для обработки метрик через path parameters
+	r.Post("/update/{type}/{name}/{value}", h.UpdateHandler)
+	r.Get("/value/{type}/{name}", h.ValueHandler)
+	r.Get("/", h.RootHandler)
 	r.Get("/ping", h.PingHandler)
-	// Добавьте другие роуты
+
+	// Дополнительные маршруты для тестов
+	r.Post("/update/counter/{name}/{value}", h.UpdateHandler)
+	r.Post("/update/gauge/{name}/{value}", h.UpdateHandler)
+	r.Get("/value/counter/{name}", h.ValueHandler)
+	r.Get("/value/gauge/{name}", h.ValueHandler)
+
+	// Маршруты с trailing slash для тестов
+	r.Post("/update/counter/{name}/{value}/", h.UpdateHandler)
+	r.Post("/update/gauge/{name}/{value}/", h.UpdateHandler)
+	r.Get("/value/counter/{name}/", h.ValueHandler)
+	r.Get("/value/gauge/{name}/", h.ValueHandler)
+
+	// Маршруты для всех типов с trailing slash
+	r.Post("/update/{type}/{name}/{value}/", h.UpdateHandler)
 
 	return &Server{router: r}
 }

@@ -28,9 +28,9 @@ func NewMetricHandlers(storage storage.Storage) *MetricHandlers {
 	return &MetricHandlers{storage: storage}
 }
 
-// updateHandler handles requests to update metrics via path parameters.
+// UpdateHandler handles requests to update metrics via path parameters.
 // It expects URL parameters: type, name, and value.
-func (h *MetricHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
+func (h *MetricHandlers) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
 	metricValue := chi.URLParam(r, "value")
@@ -64,10 +64,21 @@ func (h *MetricHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "OK\n")
 }
 
-// valueHandler handles requests to get metric values via path parameters.
-func (h *MetricHandlers) valueHandler(w http.ResponseWriter, r *http.Request) {
+// ValueHandler handles requests to get metric values via path parameters.
+func (h *MetricHandlers) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "type")
 	metricName := chi.URLParam(r, "name")
+
+	// Проверка наличия параметров
+	if metricType == "" {
+		http.Error(w, "Missing metric type parameter", http.StatusNotFound)
+		return
+	}
+
+	if metricName == "" {
+		http.Error(w, "Missing metric name parameter", http.StatusNotFound)
+		return
+	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
@@ -78,23 +89,23 @@ func (h *MetricHandlers) valueHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Metric not found", http.StatusNotFound)
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%g", value)
-
 	case "counter":
 		value, err := h.storage.GetCounter(metricName)
 		if err != nil {
 			http.Error(w, "Metric not found", http.StatusNotFound)
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%d", value)
-
 	default:
 		http.Error(w, "Unknown metric type. Use 'gauge' or 'counter'", http.StatusBadRequest)
 	}
 }
 
-// rootHandler handles requests to the root path and displays a dashboard.
-func (h *MetricHandlers) rootHandler(w http.ResponseWriter, r *http.Request) {
+// RootHandler handles requests to the root path and displays a dashboard.
+func (h *MetricHandlers) RootHandler(w http.ResponseWriter, r *http.Request) {
 	gauges, counters := h.storage.GetAllMetrics()
 
 	tmpl := `<!DOCTYPE html>
@@ -102,7 +113,47 @@ func (h *MetricHandlers) rootHandler(w http.ResponseWriter, r *http.Request) {
 <head>
     <title>Metrics Server</title>
     <style>
-        /* ... (ваши стили остаются без изменений) ... */
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            background-color: #f5f5f5; 
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin-bottom: 20px; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 12px; 
+            text-align: left; 
+        }
+        th { 
+            background-color: #4CAF50; 
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        h1 { 
+            color: #333; 
+            text-align: center;
+        }
+        h2 { 
+            color: #4CAF50; 
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .count {
+            color: #666;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
