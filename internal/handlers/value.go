@@ -19,7 +19,7 @@ func ValueHandler(repo storage.Repository) http.HandlerFunc {
 		case typeGauge:
 			value, ok := repo.GetGauge(name)
 			if !ok {
-				http.Error(w, "metric not foud", http.StatusNotFound)
+				http.Error(w, "metric not found", http.StatusNotFound)
 				return
 			}
 			fmt.Fprintf(w, "%g", value)
@@ -31,7 +31,7 @@ func ValueHandler(repo storage.Repository) http.HandlerFunc {
 			}
 			fmt.Fprintf(w, "%d", value)
 		default:
-			http.Error(w, "unknow metric type", http.StatusNotFound)
+			http.Error(w, "unknown metric type", http.StatusNotFound)
 		}
 	}
 }

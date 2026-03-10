@@ -25,7 +25,6 @@ func main() {
 
 	if err != nil {
 		panic(err)
-		return
 	}
 
 	var out []string

@@ -14,7 +14,7 @@ func main() {
 	flag.Parse()
 
 	for i, v := range flag.Args() {
-		fmt.Printf("Image file (%d): \r\n", i, v)
+		fmt.Printf("Image file (%d): %s\r\n", i, v)
 	}
 
 	fmt.Println("Destination folder:", *destDir)

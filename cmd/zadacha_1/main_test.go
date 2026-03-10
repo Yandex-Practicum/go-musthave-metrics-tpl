@@ -1,9 +1,8 @@
-package main_test
+package main
 
 import (
 	"testing"
 
-	main "github.com/bluegopher/go-musthave-metrics-tpl/cmd/sum_1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,7 +40,7 @@ func TestAbs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := main.Abs(tt.value)
+			got := Abs(tt.value)
 			if got != tt.want {
 				t.Errorf("Abs() = %v, want %v", got, tt.want)
 			}
@@ -83,7 +82,7 @@ func TestAbs_New(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, main.Abs(tt.value))
+			assert.Equal(t, tt.want, Abs(tt.value))
 		})
 	}
 }
@@ -129,7 +128,7 @@ func TestUser_FullName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			u := main.User{
+			u := User{
 				FirstName: tt.fields.FirstName,
 				LastName:  tt.fields.LastName,
 			}
@@ -182,7 +181,7 @@ func TestUser_FullName_New(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			u := main.User{
+			u := User{
 				FirstName: tt.fields.FirstName,
 				LastName:  tt.fields.LastName,
 			}
@@ -193,28 +192,28 @@ func TestUser_FullName_New(t *testing.T) {
 
 func TestFamily_AddNew(t *testing.T) {
 	type newPerson struct {
-		r main.Relationship
-		p main.Person
+		r Relationship
+		p Person
 	}
 
 	tests := []struct {
 		name           string
-		existedMembers map[main.Relationship]main.Person
+		existedMembers map[Relationship]Person
 		newPerson      newPerson
 		wantErr        bool
 	}{
 		{
 			name: "test #1",
-			existedMembers: map[main.Relationship]main.Person{
-				main.Mother: {
+			existedMembers: map[Relationship]Person{
+				Mother: {
 					FirstName: "Maria",
 					LastName:  "Popova",
 					Age:       36,
 				},
 			},
 			newPerson: newPerson{
-				r: main.Father,
-				p: main.Person{
+				r: Father,
+				p: Person{
 					FirstName: "Misha",
 					LastName:  "Popov",
 					Age:       42,
@@ -224,16 +223,16 @@ func TestFamily_AddNew(t *testing.T) {
 		},
 		{
 			name: "test #2",
-			existedMembers: map[main.Relationship]main.Person{
-				main.Father: {
+			existedMembers: map[Relationship]Person{
+				Father: {
 					FirstName: "Misha",
 					LastName:  "Popov",
 					Age:       42,
 				},
 			},
 			newPerson: newPerson{
-				r: main.Father,
-				p: main.Person{
+				r: Father,
+				p: Person{
 					FirstName: "Ivan",
 					LastName:  "Ivanov",
 					Age:       44,
@@ -244,9 +243,9 @@ func TestFamily_AddNew(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//var f main.Family
+			//var f Family
 
-			f := &main.Family{
+			f := &Family{
 				Members: tt.existedMembers,
 			}
 
@@ -266,28 +265,28 @@ func TestFamily_AddNew(t *testing.T) {
 
 func TestFamily_AddNew_new(t *testing.T) {
 	type newPerson struct {
-		r main.Relationship
-		p main.Person
+		r Relationship
+		p Person
 	}
 
 	tests := []struct {
 		name           string
-		existedMembers map[main.Relationship]main.Person
+		existedMembers map[Relationship]Person
 		newPerson      newPerson
 		wantErr        bool
 	}{
 		{
 			name: "test #1",
-			existedMembers: map[main.Relationship]main.Person{
-				main.Mother: {
+			existedMembers: map[Relationship]Person{
+				Mother: {
 					FirstName: "Maria",
 					LastName:  "Popova",
 					Age:       36,
 				},
 			},
 			newPerson: newPerson{
-				r: main.Father,
-				p: main.Person{
+				r: Father,
+				p: Person{
 					FirstName: "Misha",
 					LastName:  "Popov",
 					Age:       42,
@@ -297,16 +296,16 @@ func TestFamily_AddNew_new(t *testing.T) {
 		},
 		{
 			name: "test #2",
-			existedMembers: map[main.Relationship]main.Person{
-				main.Father: {
+			existedMembers: map[Relationship]Person{
+				Father: {
 					FirstName: "Misha",
 					LastName:  "Popov",
 					Age:       42,
 				},
 			},
 			newPerson: newPerson{
-				r: main.Father,
-				p: main.Person{
+				r: Father,
+				p: Person{
 					FirstName: "Ivan",
 					LastName:  "Ivanov",
 					Age:       44,
@@ -317,7 +316,7 @@ func TestFamily_AddNew_new(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := &main.Family{
+			f := &Family{
 				Members: tt.existedMembers,
 			}
 

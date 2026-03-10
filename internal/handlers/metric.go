@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	pathPrefixUpdate = "/update/"
-	typeGauge        = "gauge"
-	typeCounter      = "counter"
+	typeGauge   = "gauge"
+	typeCounter = "counter"
 )
 
 func MetricsHandler(repo storage.Repository) http.HandlerFunc {
