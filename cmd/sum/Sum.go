@@ -1,9 +1,10 @@
-package Sum
+// sum.go
+package sum
 
-func Summ(Values ...int) int {
+// Sum возвращает сумму элементов.
+func Sum(values ...int) int {
 	var sum int
-
-	for _, v := range Values {
+	for _, v := range values {
 		sum += v
 	}
 	return sum

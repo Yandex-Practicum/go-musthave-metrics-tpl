@@ -1,9 +1,16 @@
 package main
 
 import (
-	"fmt"
+	"log"
+
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/server"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
 )
 
 func main() {
-	fmt.Println("Server is running...")
+	repo := storage.NewMemoryStorage()
+	srv := server.New(":5050", repo)
+	if err := srv.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
