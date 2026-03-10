@@ -14,13 +14,13 @@ func StatusHandler(rw http.ResponseWriter, r *http.Request) {
 
 func UserViewHandler(users map[string]any) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		userId := r.URL.Query().Get("user_id")
-		if userId == "" {
+		userID := r.URL.Query().Get("user_id")
+		if userID == "" {
 			http.Error(rw, "user_id is empty", http.StatusBadRequest)
 			return
 		}
 
-		user, ok := users[userId]
+		user, ok := users[userID]
 		if !ok {
 			http.Error(rw, "user not found", http.StatusNotFound)
 			return

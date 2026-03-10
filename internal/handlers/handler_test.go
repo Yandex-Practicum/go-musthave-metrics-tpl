@@ -27,14 +27,17 @@ func TestMetricsHandler(t *testing.T) {
 
 	resp, err := http.Post(ts.URL+"/update/gauge/cpu/3.14", "text/plain", nil)
 	require.NoError(t, err)
+	resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	resp, err = http.Post(ts.URL+"/update/counter/hits/10", "text/plain", nil)
 	require.NoError(t, err)
+	resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	resp, err = http.Post(ts.URL+"/update/unknown/cpu/1", "text/plain", nil)
 	require.NoError(t, err)
+	resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
@@ -64,6 +67,7 @@ func TestValueHandler(t *testing.T) {
 	// неизвестная метрика
 	resp, err = http.Get(ts.URL + "/value/gauge/unknown")
 	require.NoError(t, err)
+	resp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 

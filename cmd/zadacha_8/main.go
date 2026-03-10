@@ -28,7 +28,7 @@ func (o *NetAddress) Set(flagValue string) error {
 	o.Host = parts[0]
 	port, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return fmt.Errorf("Invalid port : %s", parts[1])
+		return fmt.Errorf("invalid port: %s", parts[1])
 	}
 	o.Port = port
 	return nil
