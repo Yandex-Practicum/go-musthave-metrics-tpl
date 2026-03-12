@@ -14,13 +14,13 @@ type User struct {
 }
 
 func main() {
-	var User []User
+	var users []User
 	url := "https://jsonplaceholder.typicode.com/users"
 
 	client := resty.New()
 
 	_, err := client.R().
-		SetResult(&User).
+		SetResult(&users).
 		Get(url)
 
 	if err != nil {
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	var out []string
-	for _, v := range User {
+	for _, v := range users {
 		out = append(out, v.Username)
 	}
 	fmt.Println(strings.Join(out, ` `))

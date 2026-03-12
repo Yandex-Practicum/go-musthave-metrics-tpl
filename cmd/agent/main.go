@@ -19,22 +19,22 @@ func main() {
 
 	var lastGauges []agent.GaugeMetric
 	var pollsSinceReport int64
-	reportTick := *reportInterval
+
+	pollTicker := time.NewTicker(*pollInterval)
+	reportTicker := time.NewTicker(*reportInterval)
 
 	for {
-		lastGauges = agent.CollectGauges()
-		pollsSinceReport++
-
-		for elapsed := time.Duration(0); elapsed < reportTick; elapsed += *pollInterval {
-			time.Sleep(*pollInterval)
+		select {
+		case <-pollTicker.C:
 			lastGauges = agent.CollectGauges()
 			pollsSinceReport++
+		case <-reportTicker.C:
+			if err := sender.SendAll(lastGauges, pollsSinceReport); err != nil {
+				log.Printf("отправка метрик: %v", err)
+				continue
+			}
+			log.Printf("метрики отправлены (polls=%d)", pollsSinceReport)
+			pollsSinceReport = 0
 		}
-		if err := sender.SendAll(lastGauges, pollsSinceReport); err != nil {
-			log.Printf("отправка метрик: %v", err)
-			continue
-		}
-		log.Printf("метрики отправлены (polls=%d)", pollsSinceReport)
-		pollsSinceReport = 0
 	}
 }

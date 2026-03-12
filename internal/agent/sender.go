@@ -21,42 +21,31 @@ func NewSender(baseURL string) *Sender {
 	}
 }
 
-func (s *Sender) SendGauge(name string, value float64) error {
-	path := fmt.Sprintf("%s/update/gauge/%s/%s", s.baseURL, url.PathEscape(name), strconv.FormatFloat(value, 'f', -1, 64))
+func (s *Sender) post(path string) error {
 	req, err := http.NewRequest(http.MethodPost, path, nil)
 	if err != nil {
 		return err
 	}
-
 	req.Header.Set("Content-Type", "text/plain")
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status: %s", resp.Status)
 	}
 	return nil
 }
 
+func (s *Sender) SendGauge(name string, value float64) error {
+	path := fmt.Sprintf("%s/update/gauge/%s/%s", s.baseURL, url.PathEscape(name), strconv.FormatFloat(value, 'f', -1, 64))
+	return s.post(path)
+}
+
 func (s *Sender) SendCounter(name string, delta int64) error {
 	path := fmt.Sprintf("%s/update/counter/%s/%d", s.baseURL, url.PathEscape(name), delta)
-	req, err := http.NewRequest(http.MethodPost, path, nil)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "text/plain")
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status: %s", resp.Status)
-	}
-	return nil
+	return s.post(path)
 }
 
 func (s *Sender) SendAll(gauges []GaugeMetric, pollCountDelta int64) error {
