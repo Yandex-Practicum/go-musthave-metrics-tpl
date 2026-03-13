@@ -42,3 +42,47 @@ git fetch template && git checkout template/v2 .github
 - **Clean Architecture**
 - **Hexagonal Architecture**
 - **Layered Architecture**
+
+# Запуск с параметрами по умолчанию
+go run cmd/server/main.go
+
+# Запуск на другом порту
+go run cmd/server/main.go -a=localhost:9090
+
+# Запуск на всех интерфейсах
+go run cmd/server/main.go -a=:8080
+
+# Запуск на конкретном IP
+go run cmd/server/main.go -a=192.168.1.100:8080
+
+# Помощь по флагам
+go run cmd/server/main.go -h
+
+# Запуск с параметрами по умолчанию (сервер localhost:8080, отправка каждые 10 сек, сбор каждые 2 сек)
+go run cmd/agent/main.go
+
+# Запуск с кастомным сервером
+go run cmd/agent/main.go -a=localhost:9090
+
+# Запуск с более частой отправкой (каждые 5 секунд)
+go run cmd/agent/main.go -r=5
+
+# Запуск с более частым сбором метрик (каждую секунду)
+go run cmd/agent/main.go -p=1
+
+# Запуск со всеми кастомными параметрами
+go run cmd/agent/main.go -a=192.168.1.100:8080 -r=30 -p=5
+
+# Быстрый режим для тестирования (сбор каждую секунду, отправка каждые 3 секунды)
+go run cmd/agent/main.go -p=1 -r=3
+
+# Медленный режим (сбор каждые 10 секунд, отправка каждую минуту)
+go run cmd/agent/main.go -p=10 -r=60
+
+# Помощь по флагам
+go run cmd/agent/main.go -h
+
+
+# 7. Для отладки - тестовый запрос через curl
+curl -X POST -H "Content-Type: text/plain" \
+  "http://localhost:8080/update/gauge/TestMetric/123.456"
