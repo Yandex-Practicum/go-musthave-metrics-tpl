@@ -1,0 +1,4 @@
+agent_config:
+  server_adress: "localhost:8080"
+  poll_interval: "2s"
+  report_interval: "10s"
