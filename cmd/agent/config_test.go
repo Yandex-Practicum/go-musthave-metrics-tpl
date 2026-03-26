@@ -19,7 +19,7 @@ func TestParseConfig(t *testing.T) {
 			args: []string{"test"},
 			env:  map[string]string{},
 			want: agentConfig{
-				Addr:           "localhost:5050",
+				Addr:           "localhost:8080",
 				PollInterval:   2 * time.Second,
 				ReportInterval: 10 * time.Second,
 			},

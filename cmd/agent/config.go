@@ -15,7 +15,7 @@ type agentConfig struct {
 }
 
 func parseConfig() agentConfig {
-	addr := flag.String("a", "localhost:5050", "адрес сервера (host:port)")
+	addr := flag.String("a", "localhost:8080", "адрес сервера (host:port)")
 	pollInterval := flag.Duration("p", 2*time.Second, "интервал сбора метрик")
 	reportInterval := flag.Duration("r", 10*time.Second, "интервал отправки метрик на сервер")
 	flag.Parse()
