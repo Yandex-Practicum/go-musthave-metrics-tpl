@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"time"
 
@@ -9,19 +8,16 @@ import (
 )
 
 func main() {
-	addr := flag.String("a", "localhost:5050", "адрес сервера (host:port)")
-	pollInterval := flag.Duration("p", 2*time.Second, "интервал сбора метрик")
-	reportInterval := flag.Duration("r", 10*time.Second, "интервал отправки метрик на сервер")
-	flag.Parse()
+	cfg := parseConfig()
 
-	baseURL := "http://" + *addr
+	baseURL := "http://" + cfg.Addr
 	sender := agent.NewSender(baseURL)
 
 	var lastGauges []agent.GaugeMetric
 	var pollsSinceReport int64
 
-	pollTicker := time.NewTicker(*pollInterval)
-	reportTicker := time.NewTicker(*reportInterval)
+	pollTicker := time.NewTicker(cfg.PollInterval)
+	reportTicker := time.NewTicker(cfg.ReportInterval)
 
 	for {
 		select {
