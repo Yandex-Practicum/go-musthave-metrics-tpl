@@ -27,7 +27,9 @@ func (s *Server) Run() error {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(s.repo))
+	r.Post("/update/", handlers.UpdateJSONHandler(s.repo))
 	r.Get("/value/{type}/{name}", handlers.ValueHandler(s.repo))
+	r.Post("/value/", handlers.ValueJSONHandler(s.repo))
 	r.Get("/", handlers.ListHandler(s.repo))
 
 	s.server = &http.Server{Addr: s.addr, Handler: r}

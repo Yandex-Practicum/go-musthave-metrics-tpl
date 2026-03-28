@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
+
+	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 )
 
 const pollCountName = "PollCount"
@@ -21,13 +23,12 @@ func NewSender(baseURL string) *Sender {
 	}
 }
 
-func (s *Sender) post(path string) error {
-	req, err := http.NewRequest(http.MethodPost, path, nil)
+func (s *Sender) postjson(m models.Metrics) error {
+	data, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "text/plain")
-	resp, err := s.client.Do(req)
+	resp, err := s.client.Post(s.baseURL+"/update/", "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
@@ -39,13 +40,19 @@ func (s *Sender) post(path string) error {
 }
 
 func (s *Sender) SendGauge(name string, value float64) error {
-	path := fmt.Sprintf("%s/update/gauge/%s/%s", s.baseURL, url.PathEscape(name), strconv.FormatFloat(value, 'f', -1, 64))
-	return s.post(path)
+	return s.postjson(models.Metrics{
+		ID:    name,
+		MType: models.Gauge,
+		Value: &value,
+	})
 }
 
 func (s *Sender) SendCounter(name string, delta int64) error {
-	path := fmt.Sprintf("%s/update/counter/%s/%d", s.baseURL, url.PathEscape(name), delta)
-	return s.post(path)
+	return s.postjson(models.Metrics{
+		ID:    name,
+		MType: models.Counter,
+		Delta: &delta,
+	})
 }
 
 func (s *Sender) SendAll(gauges []GaugeMetric, pollCountDelta int64) error {

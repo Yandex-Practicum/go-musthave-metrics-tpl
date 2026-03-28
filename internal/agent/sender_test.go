@@ -1,9 +1,12 @@
 package agent
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 )
 
 func TestSender_SendGauge(t *testing.T) {
@@ -13,7 +16,6 @@ func TestSender_SendGauge(t *testing.T) {
 		value      float64
 		serverCode int
 		wantErr    bool
-		wantPath   string
 	}{
 		{
 			name:       "test #1 /200",
@@ -21,7 +23,6 @@ func TestSender_SendGauge(t *testing.T) {
 			value:      123,
 			serverCode: http.StatusOK,
 			wantErr:    false,
-			wantPath:   "/update/gauge/Alloc/123",
 		},
 		{
 			name:       "test #2 /500",
@@ -29,25 +30,25 @@ func TestSender_SendGauge(t *testing.T) {
 			value:      1,
 			serverCode: http.StatusInternalServerError,
 			wantErr:    true,
-			wantPath:   "/update/gauge/Alloc/1",
 		},
 		{
-			name:       "test #3 ",
+			name:       "test #3",
 			metricName: "Alloc",
 			value:      -3.14,
 			serverCode: http.StatusOK,
 			wantErr:    false,
-			wantPath:   "/update/gauge/Alloc/-3.14",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var Path, Method, ContentType string
+			var method, contentType, path string
+			var received models.Metrics
 
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				Path = r.URL.RequestURI()
-				Method = r.Method
-				ContentType = r.Header.Get("Content-Type")
+				path = r.URL.RequestURI()
+				method = r.Method
+				contentType = r.Header.Get("Content-Type")
+				json.NewDecoder(r.Body).Decode(&received)
 				w.WriteHeader(tt.serverCode)
 			}))
 			defer srv.Close()
@@ -61,17 +62,26 @@ func TestSender_SendGauge(t *testing.T) {
 				}
 			} else {
 				if err != nil {
-					t.Errorf("Ошибка: %v", err)
+					t.Errorf("ошибка: %v", err)
 				}
 			}
-			if Path != tt.wantPath {
-				t.Errorf("путь: ожидали %q, получили %q", tt.wantPath, Path)
+			if path != "/update/" {
+				t.Errorf("путь: ожидали %q, получили %q", "/update/", path)
 			}
-			if Method != http.MethodPost {
-				t.Errorf("метод: ожидали POST, получили %q", Method)
+			if method != http.MethodPost {
+				t.Errorf("метод: ожидали POST, получили %q", method)
 			}
-			if ContentType != "text/plain" {
-				t.Errorf("Content-Type: ожидали text/plain, получили %q", ContentType)
+			if contentType != "application/json" {
+				t.Errorf("Content-Type: ожидали application/json, получили %q", contentType)
+			}
+			if received.ID != tt.metricName {
+				t.Errorf("ID: ожидали %q, получили %q", tt.metricName, received.ID)
+			}
+			if received.MType != "gauge" {
+				t.Errorf("MType: ожидали %q, получили %q", "gauge", received.MType)
+			}
+			if received.Value != nil && *received.Value != tt.value {
+				t.Errorf("Value: ожидали %v, получили %v", tt.value, *received.Value)
 			}
 		})
 	}
@@ -84,7 +94,6 @@ func TestSender_SendCounter(t *testing.T) {
 		delta      int64
 		serverCode int
 		wantErr    bool
-		wantPath   string
 	}{
 		{
 			name:       "test #1 /200",
@@ -92,7 +101,6 @@ func TestSender_SendCounter(t *testing.T) {
 			delta:      5,
 			serverCode: http.StatusOK,
 			wantErr:    false,
-			wantPath:   "/update/counter/PollCount/5",
 		},
 		{
 			name:       "test #2 /500",
@@ -100,25 +108,25 @@ func TestSender_SendCounter(t *testing.T) {
 			delta:      1,
 			serverCode: http.StatusInternalServerError,
 			wantErr:    true,
-			wantPath:   "/update/counter/PollCount/1",
 		},
 		{
-			name:       "test #3 ",
+			name:       "test #3",
 			metricName: "PollCount",
 			delta:      -3,
 			serverCode: http.StatusOK,
 			wantErr:    false,
-			wantPath:   "/update/counter/PollCount/-3",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var path, method, contentType string
+			var received models.Metrics
 
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				path = r.URL.RequestURI()
 				method = r.Method
 				contentType = r.Header.Get("Content-Type")
+				json.NewDecoder(r.Body).Decode(&received)
 				w.WriteHeader(tt.serverCode)
 			}))
 			defer srv.Close()
@@ -132,17 +140,26 @@ func TestSender_SendCounter(t *testing.T) {
 				}
 			} else {
 				if err != nil {
-					t.Errorf("неожиданная ошибка: %v", err)
+					t.Errorf("ошибка: %v", err)
 				}
 			}
-			if path != tt.wantPath {
-				t.Errorf("путь: ожидали %q, получили %q", tt.wantPath, path)
+			if path != "/update/" {
+				t.Errorf("путь: ожидали %q, получили %q", "/update/", path)
 			}
 			if method != http.MethodPost {
 				t.Errorf("метод: ожидали POST, получили %q", method)
 			}
-			if contentType != "text/plain" {
-				t.Errorf("Content-Type: ожидали text/plain, получили %q", contentType)
+			if contentType != "application/json" {
+				t.Errorf("Content-Type: ожидали application/json, получили %q", contentType)
+			}
+			if received.ID != tt.metricName {
+				t.Errorf("ID: ожидали %q, получили %q", tt.metricName, received.ID)
+			}
+			if received.MType != "counter" {
+				t.Errorf("MType: ожидали %q, получили %q", "counter", received.MType)
+			}
+			if received.Delta != nil && *received.Delta != tt.delta {
+				t.Errorf("Delta: ожидали %v, получили %v", tt.delta, *received.Delta)
 			}
 		})
 	}
@@ -155,7 +172,7 @@ func TestSender_SendAll(t *testing.T) {
 		pollCountDelta int64
 		serverCode     int
 		wantErr        bool
-		wantPaths      []string
+		wantCount      int
 	}{
 		{
 			name: "test #1 успех",
@@ -166,11 +183,7 @@ func TestSender_SendAll(t *testing.T) {
 			pollCountDelta: 3,
 			serverCode:     http.StatusOK,
 			wantErr:        false,
-			wantPaths: []string{
-				"/update/gauge/Alloc/100",
-				"/update/gauge/Sys/200",
-				"/update/counter/PollCount/3",
-			},
+			wantCount:      3,
 		},
 		{
 			name: "test #2 ошибка сервера",
@@ -180,15 +193,15 @@ func TestSender_SendAll(t *testing.T) {
 			pollCountDelta: 1,
 			serverCode:     http.StatusInternalServerError,
 			wantErr:        true,
-			wantPaths:      []string{"/update/gauge/Alloc/100"},
+			wantCount:      1,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var paths []string
+			var count int
 
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				paths = append(paths, r.URL.RequestURI())
+				count++
 				w.WriteHeader(tt.serverCode)
 			}))
 			defer srv.Close()
@@ -198,21 +211,15 @@ func TestSender_SendAll(t *testing.T) {
 
 			if tt.wantErr {
 				if err == nil {
-					t.Error("успешно")
+					t.Error("ожидали ошибку")
 				}
 			} else {
 				if err != nil {
 					t.Errorf("ошибка: %v", err)
 				}
 			}
-			if len(paths) != len(tt.wantPaths) {
-				t.Errorf("количество запросов: ожидали %d, получили %d", len(tt.wantPaths), len(paths))
-				return
-			}
-			for i, wantPath := range tt.wantPaths {
-				if paths[i] != wantPath {
-					t.Errorf("запрос %d: ожидали путь %q, получили %q", i+1, wantPath, paths[i])
-				}
+			if count != tt.wantCount {
+				t.Errorf("количество запросов: ожидали %d, получили %d", tt.wantCount, count)
 			}
 		})
 	}
