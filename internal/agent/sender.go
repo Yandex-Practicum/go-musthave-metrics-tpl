@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -28,10 +29,34 @@ func (s *Sender) postjson(m models.Metrics) error {
 	if err != nil {
 		return err
 	}
-	resp, err := s.client.Post(s.baseURL+"/update/", "application/json", bytes.NewBuffer(data))
+
+	var buf bytes.Buffer
+	gz, err := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
 	if err != nil {
 		return err
 	}
+
+	if _, err := gz.Write(data); err != nil {
+		return err
+	}
+
+	if err := gz.Close(); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, s.baseURL+"/update/", &buf)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status: %s", resp.Status)

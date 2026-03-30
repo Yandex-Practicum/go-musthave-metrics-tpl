@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -48,7 +49,11 @@ func TestSender_SendGauge(t *testing.T) {
 				path = r.URL.RequestURI()
 				method = r.Method
 				contentType = r.Header.Get("Content-Type")
-				json.NewDecoder(r.Body).Decode(&received)
+				gr, _ := gzip.NewReader(r.Body)
+				if gr != nil {
+					defer gr.Close()
+					json.NewDecoder(gr).Decode(&received)
+				}
 				w.WriteHeader(tt.serverCode)
 			}))
 			defer srv.Close()
@@ -126,7 +131,11 @@ func TestSender_SendCounter(t *testing.T) {
 				path = r.URL.RequestURI()
 				method = r.Method
 				contentType = r.Header.Get("Content-Type")
-				json.NewDecoder(r.Body).Decode(&received)
+				gr, _ := gzip.NewReader(r.Body)
+				if gr != nil {
+					defer gr.Close()
+					json.NewDecoder(gr).Decode(&received)
+				}
 				w.WriteHeader(tt.serverCode)
 			}))
 			defer srv.Close()
