@@ -8,6 +8,11 @@ type MemoryStorage struct {
 	mu       sync.RWMutex
 	gauges   map[string]float64
 	counters map[string]int64
+	syncFile string
+}
+
+func (s *MemoryStorage) SetSyncFile(path string) {
+	s.syncFile = path
 }
 
 func NewMemoryStorage() *MemoryStorage {
@@ -19,14 +24,20 @@ func NewMemoryStorage() *MemoryStorage {
 
 func (s *MemoryStorage) UpdateGauge(name string, value float64) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.gauges[name] = value
+	s.mu.Unlock()
+	if s.syncFile != "" {
+		SaveToFile(s, s.syncFile)
+	}
 }
 
 func (s *MemoryStorage) UpdateCounter(name string, delta int64) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.counters[name] += delta
+	s.mu.Unlock()
+	if s.syncFile != "" {
+		SaveToFile(s, s.syncFile)
+	}
 }
 
 func (s *MemoryStorage) GetGauge(name string) (float64, bool) {
