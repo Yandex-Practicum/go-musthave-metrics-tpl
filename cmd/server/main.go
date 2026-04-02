@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/logger"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/server"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 	if v := os.Getenv("STORE_INTERVAL"); v != "" {
 		sec, err := strconv.Atoi(v)
 		if err != nil {
-			log.Fatalf("Неверное значение STORE_INTERVAL: %v", err)
+			log.Fatal().Err(err).Msg("Неверное значение STORE_INTERVAL:")
 		}
 		*storeInterval = sec
 	}
@@ -39,13 +39,13 @@ func main() {
 	if v := os.Getenv("RESTORE"); v != "" {
 		b, err := strconv.ParseBool(v)
 		if err != nil {
-			log.Fatalf("Неверное значение RESTORE: %v", err)
+			log.Fatal().Err(err).Msg("Неверное значение RESTORE")
 		}
 		*restore = b
 	}
 
 	if err := logger.Initialize(*logLevel); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("ошибка инициализации логгера")
 	}
 
 	repo := storage.NewMemoryStorage()
@@ -53,7 +53,7 @@ func main() {
 	// загрузка метрик из файла при старте
 	if *restore && *filePath != "" {
 		if err := storage.LoadFromFile(repo, *filePath); err != nil {
-			log.Printf("Не удалось загрузить метрик: %v", err)
+			log.Error().Err(err).Msg("Не удалось загрузить метрик")
 		}
 	}
 	// периодическое сохранение на диск
@@ -67,6 +67,6 @@ func main() {
 
 	srv := server.New(*addr, repo)
 	if err := srv.Run(); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("ошибка запуска сервера")
 	}
 }

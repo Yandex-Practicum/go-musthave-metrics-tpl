@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
-	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
 )
 
-func UpdateJSONHandler(repo storage.Repository) http.HandlerFunc {
+func UpdateJSONHandler(srv service.MetricsService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
@@ -16,19 +16,19 @@ func UpdateJSONHandler(repo storage.Repository) http.HandlerFunc {
 			return
 		}
 
-		switch m.MType {
+		switch metricType(m.MType) {
 		case typeGauge:
 			if m.Value == nil {
 				http.Error(w, "value is required", http.StatusBadRequest)
 				return
 			}
-			repo.UpdateGauge(m.ID, *m.Value)
+			srv.UpdateGauge(r.Context(), m.ID, *m.Value)
 		case typeCounter:
 			if m.Delta == nil {
 				http.Error(w, "delta is required", http.StatusBadRequest)
 				return
 			}
-			repo.UpdateCounter(m.ID, *m.Delta)
+			srv.UpdateCounter(r.Context(), m.ID, *m.Delta)
 		default:
 			http.Error(w, "unknown metric type", http.StatusBadRequest)
 			return

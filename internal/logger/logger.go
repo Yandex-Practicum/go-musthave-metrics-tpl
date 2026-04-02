@@ -2,15 +2,12 @@ package logger
 
 import (
 	"net/http"
+	"os"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
-
-// Log будет доступен всему коду как синглтон.
-// Никакой код навыка, кроме функции Initialize, не должен модифицировать эту переменную.
-// По умолчанию установлен no-op-логер, который не выводит никаких сообщений.
-var Log *zap.Logger = zap.NewNop()
 
 type responseData struct {
 	status int
@@ -36,21 +33,12 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 // Initialize инициализирует синглтон логера с необходимым уровнем логирования.
 func Initialize(level string) error {
 	// преобразуем текстовый уровень логирования в zap.AtomicLevel
-	lvl, err := zap.ParseAtomicLevel(level)
+	lvl, err := zerolog.ParseLevel(level)
 	if err != nil {
 		return err
 	}
-	// создаём новую конфигурацию логера
-	cfg := zap.NewProductionConfig()
-	// устанавливаем уровень
-	cfg.Level = lvl
-	// создаём логер на основе конфигурации
-	zl, err := cfg.Build()
-	if err != nil {
-		return err
-	}
-	// устанавливаем синглтон
-	Log = zl
+	zerolog.SetGlobalLevel(lvl)
+	log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
 	return nil
 }
 
@@ -69,14 +57,16 @@ func RequestLogger(h http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		Log.Info("request",
-			zap.String("uri", r.RequestURI),
-			zap.String("method", r.Method),
-			zap.Duration("duration", duration),
-		)
-		Log.Info("response",
-			zap.Int("status", rd.status),
-			zap.Int("size", rd.size),
-		)
+		log.Info().
+			Str("uri", r.RequestURI).
+			Str("method", r.Method).
+			Dur("duration", duration).
+			Msg("request")
+
+		log.Info().
+			Int("status", rd.status).
+			Int("size", rd.size).
+			Msg("response")
+
 	})
 }

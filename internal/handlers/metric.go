@@ -4,19 +4,21 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
 	"github.com/go-chi/chi/v5"
 )
 
+type metricType string
+
 const (
-	typeGauge   = "gauge"
-	typeCounter = "counter"
+	typeGauge   metricType = "gauge"
+	typeCounter metricType = "counter"
 )
 
-func MetricsHandler(repo storage.Repository) http.HandlerFunc {
+func MetricsHandler(srv service.MetricsService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		metricType := chi.URLParam(r, "type")
+		mType := chi.URLParam(r, "type")
 		name := chi.URLParam(r, "name")
 		valueStr := chi.URLParam(r, "value")
 
@@ -24,21 +26,21 @@ func MetricsHandler(repo storage.Repository) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		switch metricType {
+		switch metricType(mType) {
 		case typeGauge:
 			value, err := strconv.ParseFloat(valueStr, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			repo.UpdateGauge(name, value)
+			srv.UpdateGauge(r.Context(), name, value)
 		case typeCounter:
 			delta, err := strconv.ParseInt(valueStr, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			repo.UpdateCounter(name, delta)
+			srv.UpdateCounter(r.Context(), name, delta)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			return

@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
-	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
 )
 
-func ValueJSONHandler(repo storage.Repository) http.HandlerFunc {
+func ValueJSONHandler(srv service.MetricsService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
@@ -16,16 +16,16 @@ func ValueJSONHandler(repo storage.Repository) http.HandlerFunc {
 			return
 		}
 
-		switch m.MType {
+		switch metricType(m.MType) {
 		case typeGauge:
-			value, ok := repo.GetGauge(m.ID)
+			value, ok := srv.GetGauge(r.Context(), m.ID)
 			if !ok {
 				http.Error(w, "metric not found", http.StatusNotFound)
 				return
 			}
 			m.Value = &value
 		case typeCounter:
-			value, ok := repo.GetCounter(m.ID)
+			value, ok := srv.GetCounter(r.Context(), m.ID)
 			if !ok {
 				http.Error(w, "metric not found", http.StatusNotFound)
 				return

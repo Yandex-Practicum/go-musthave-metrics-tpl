@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/agent"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -26,10 +26,10 @@ func main() {
 			pollsSinceReport++
 		case <-reportTicker.C:
 			if err := sender.SendAll(lastGauges, pollsSinceReport); err != nil {
-				log.Printf("отправка метрик: %v", err)
+				log.Error().Err(err).Msg("отправка метрик")
 				continue
 			}
-			log.Printf("метрики отправлены (polls=%d)", pollsSinceReport)
+			log.Info().Int64("polls", pollsSinceReport).Msg("метрики отправлены")
 			pollsSinceReport = 0
 		}
 	}

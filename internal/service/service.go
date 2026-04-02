@@ -1,12 +1,14 @@
-package storage
+package service
 
-import "context"
+import (
+	"context"
+)
 
-type Repository interface {
+type MetricsService interface {
 	UpdateGauge(ctx context.Context, name string, value float64)
 	UpdateCounter(ctx context.Context, name string, delta int64)
-	GetGauge(ctx context.Context, name string) (value float64, ok bool)
-	GetCounter(ctx context.Context, name string) (value int64, ok bool)
+	GetGauge(ctx context.Context, name string) (float64, bool)
+	GetCounter(ctx context.Context, name string) (int64, bool)
 	GetAllGauges(ctx context.Context) map[string]float64
 	GetAllCounters(ctx context.Context) map[string]int64
 }

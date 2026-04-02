@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -43,8 +44,8 @@ func TestMetricsHandler(t *testing.T) {
 
 func TestValueHandler(t *testing.T) {
 	repo := storage.NewMemoryStorage()
-	repo.UpdateGauge("cpu", 3.14)
-	repo.UpdateCounter("hits", 10)
+	repo.UpdateGauge(context.Background(), "cpu", 3.14)
+	repo.UpdateCounter(context.Background(), "hits", 10)
 	ts := httptest.NewServer(newTestRouter(repo))
 	defer ts.Close()
 
@@ -73,7 +74,7 @@ func TestValueHandler(t *testing.T) {
 
 func TestListHandler(t *testing.T) {
 	repo := storage.NewMemoryStorage()
-	repo.UpdateGauge("cpu", 1.5)
+	repo.UpdateGauge(context.Background(), "cpu", 1.5)
 	ts := httptest.NewServer(newTestRouter(repo))
 	defer ts.Close()
 

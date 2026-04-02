@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
 )
 
-func ListHandler(repo storage.Repository) http.HandlerFunc {
+func ListHandler(srv service.MetricsService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		gauges := repo.GetAllGauges()
-		counters := repo.GetAllCounters()
+		gauges := srv.GetAllGauges(r.Context())
+		counters := srv.GetAllCounters(r.Context())
 
 		var sb strings.Builder
 		sb.WriteString("<html><body><ul>")

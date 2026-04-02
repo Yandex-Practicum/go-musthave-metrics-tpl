@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type agentConfig struct {
@@ -28,7 +29,7 @@ func parseConfig() agentConfig {
 	if v := os.Getenv("REPORT_INTERVAL"); v != "" {
 		sec, err := strconv.Atoi(v)
 		if err != nil {
-			log.Fatalf("неверное значение REPORT_INTERVAL: %v", err)
+			log.Fatal().Err(err).Msg("неверное значение REPORT_INTERVAL")
 		}
 		*reportInterval = time.Duration(sec) * time.Second
 	}
@@ -36,7 +37,7 @@ func parseConfig() agentConfig {
 	if v := os.Getenv("POLL_INTERVAL"); v != "" {
 		sec, err := strconv.Atoi(v)
 		if err != nil {
-			log.Fatalf("неверное значение POLL_INTERVAL : %v", err)
+			log.Fatal().Err(err).Msg("неверное значение POLL_INTERVAL")
 		}
 		*pollInterval = time.Duration(sec) * time.Second
 	}

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"sync"
 )
 
@@ -22,7 +23,7 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (s *MemoryStorage) UpdateGauge(name string, value float64) {
+func (s *MemoryStorage) UpdateGauge(ctx context.Context, name string, value float64) {
 	s.mu.Lock()
 	s.gauges[name] = value
 	s.mu.Unlock()
@@ -31,7 +32,7 @@ func (s *MemoryStorage) UpdateGauge(name string, value float64) {
 	}
 }
 
-func (s *MemoryStorage) UpdateCounter(name string, delta int64) {
+func (s *MemoryStorage) UpdateCounter(ctx context.Context, name string, delta int64) {
 	s.mu.Lock()
 	s.counters[name] += delta
 	s.mu.Unlock()
@@ -40,21 +41,21 @@ func (s *MemoryStorage) UpdateCounter(name string, delta int64) {
 	}
 }
 
-func (s *MemoryStorage) GetGauge(name string) (float64, bool) {
+func (s *MemoryStorage) GetGauge(ctx context.Context, name string) (float64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	v, ok := s.gauges[name]
 	return v, ok
 }
 
-func (s *MemoryStorage) GetCounter(name string) (int64, bool) {
+func (s *MemoryStorage) GetCounter(ctx context.Context, name string) (int64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	v, ok := s.counters[name]
 	return v, ok
 }
 
-func (s *MemoryStorage) GetAllGauges() map[string]float64 {
+func (s *MemoryStorage) GetAllGauges(ctx context.Context) map[string]float64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	result := make(map[string]float64, len(s.gauges))
@@ -64,7 +65,7 @@ func (s *MemoryStorage) GetAllGauges() map[string]float64 {
 	return result
 }
 
-func (s *MemoryStorage) GetAllCounters() map[string]int64 {
+func (s *MemoryStorage) GetAllCounters(ctx context.Context) map[string]int64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	result := make(map[string]int64, len(s.counters))
