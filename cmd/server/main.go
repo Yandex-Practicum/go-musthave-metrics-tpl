@@ -18,6 +18,7 @@ func main() {
 	storeInterval := flag.Int("i", 300, "интервал сохранения на диск (сек)")
 	filePath := flag.String("f", "metrics.json", "путь до файла хранения")
 	restore := flag.Bool("r", true, "загружать данныепри старте")
+	databaseDSN := flag.String("d", "", "строка подклюучения к PostgreSQL")
 	flag.Parse()
 
 	if v := os.Getenv("ADDRESS"); v != "" {
@@ -44,11 +45,17 @@ func main() {
 		*restore = b
 	}
 
+	if v := os.Getenv("DATABASE_DSN"); v != "" {
+		*databaseDSN = v
+	}
+
 	if err := logger.Initialize(*logLevel); err != nil {
 		log.Fatal().Err(err).Msg("ошибка инициализации логгера")
 	}
 
 	repo := storage.NewMemoryStorage()
+
+	db, _ := storage.NewPostgresDB(*databaseDSN)
 
 	// загрузка метрик из файла при старте
 	if *restore && *filePath != "" {
@@ -65,7 +72,7 @@ func main() {
 		repo.SetSyncFile(*filePath)
 	}
 
-	srv := server.New(*addr, repo)
+	srv := server.New(*addr, repo, db)
 	if err := srv.Run(); err != nil {
 		log.Fatal().Err(err).Msg("ошибка запуска сервера")
 	}

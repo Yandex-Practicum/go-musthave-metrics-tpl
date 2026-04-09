@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,13 +20,15 @@ import (
 type Server struct {
 	addr   string
 	repo   storage.Repository
+	db     *sql.DB
 	server *http.Server
 }
 
-func New(addr string, repo storage.Repository) *Server {
+func New(addr string, repo storage.Repository, db *sql.DB) *Server {
 	return &Server{
 		addr: addr,
 		repo: repo,
+		db:   db,
 	}
 }
 
@@ -40,6 +43,7 @@ func (s *Server) Run() error {
 	r.Get("/value/{type}/{name}", handlers.ValueHandler(service))
 	r.Post("/value/", handlers.ValueJSONHandler(service))
 	r.Get("/", handlers.ListHandler(service))
+	r.Get("/ping", handlers.PingHandler(s.db))
 
 	srv := &http.Server{
 		Addr:         s.addr,
