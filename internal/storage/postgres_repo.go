@@ -60,6 +60,9 @@ func (s *PostgresStorage) GetAllGauges(ctx context.Context) map[string]float64 {
 		rows.Scan(&name, &value)
 		result[name] = value
 	}
+	if err := rows.Err(); err != nil {
+		return result
+	}
 	return result
 }
 
@@ -78,6 +81,9 @@ func (s *PostgresStorage) GetAllCounters(ctx context.Context) map[string]int64 {
 		var delta int64
 		rows.Scan(&name, &delta)
 		result[name] = delta
+	}
+	if err := rows.Err(); err != nil {
+		return result
 	}
 	return result
 }
