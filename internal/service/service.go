@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+
+	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 )
 
 type MetricsService interface {
@@ -11,4 +13,5 @@ type MetricsService interface {
 	GetCounter(ctx context.Context, name string) (int64, bool)
 	GetAllGauges(ctx context.Context) map[string]float64
 	GetAllCounters(ctx context.Context) map[string]int64
+	UpdateBatch(ctx context.Context, metrics []models.Metrics) error
 }

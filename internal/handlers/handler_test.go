@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
@@ -16,7 +17,10 @@ import (
 func newTestRouter(repo storage.Repository) http.Handler {
 	r := chi.NewRouter()
 	r.Post("/update/{type}/{name}/{value}", MetricsHandler(repo))
+	r.Post("/update/", UpdateJSONHandler(repo))
+	r.Post("/updates/", UpdatesJSONHandler(repo))
 	r.Get("/value/{type}/{name}", ValueHandler(repo))
+	r.Post("/value/", ValueJSONHandler(repo))
 	r.Get("/", ListHandler(repo))
 	return r
 }
@@ -84,4 +88,52 @@ func TestListHandler(t *testing.T) {
 	resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Contains(t, string(body), "cpu")
+}
+
+func TestUpdatesJsonHandler(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		expectedCode int
+		check        func(t *testing.T, repo *storage.MemoryStorage)
+	}{
+		{name: "Успех",
+			body:         `[{"id":"Alloc","type":"gauge","value":123.5},{"id":"PollCount","type":"counter","delta":10}]`,
+			expectedCode: http.StatusOK,
+			check: func(t *testing.T, repo *storage.MemoryStorage) {
+				val, ok := repo.GetGauge(context.Background(), "Alloc")
+				assert.True(t, ok)
+				assert.Equal(t, 123.5, val)
+				cnt, ok := repo.GetCounter(context.Background(), "PollCount")
+				assert.True(t, ok)
+				assert.Equal(t, int64(10), cnt)
+			},
+		},
+		{
+			name:         "Пустой",
+			body:         `[]`,
+			expectedCode: http.StatusOK,
+			check:        func(t *testing.T, repo *storage.MemoryStorage) {},
+		},
+		{
+			name:         "Невалидный",
+			body:         `not json`,
+			expectedCode: http.StatusBadRequest,
+			check:        func(t *testing.T, repo *storage.MemoryStorage) {},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := storage.NewMemoryStorage()
+			ts := httptest.NewServer(newTestRouter(repo))
+			defer ts.Close()
+
+			resp, err := http.Post(ts.URL+"/updates/", "application/json", strings.NewReader(tt.body))
+			require.NoError(t, err)
+			resp.Body.Close()
+
+			assert.Equal(t, tt.expectedCode, resp.StatusCode)
+			tt.check(t, repo)
+		})
+	}
 }

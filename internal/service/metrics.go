@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
 )
 
@@ -36,4 +37,8 @@ func (s *metricService) GetAllGauges(ctx context.Context) map[string]float64 {
 
 func (s *metricService) GetAllCounters(ctx context.Context) map[string]int64 {
 	return s.repo.GetAllCounters(ctx)
+}
+
+func (s *metricService) UpdateBatch(ctx context.Context, metrics []models.Metrics) error {
+	return s.repo.UpdateBatch(ctx, metrics)
 }

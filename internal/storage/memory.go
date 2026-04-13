@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"sync"
+
+	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 )
 
 type MemoryStorage struct {
@@ -73,4 +75,20 @@ func (s *MemoryStorage) GetAllCounters(ctx context.Context) map[string]int64 {
 		result[k] = v
 	}
 	return result
+}
+
+func (s *MemoryStorage) UpdateBatch(ctx context.Context, metrics []models.Metrics) error {
+	for _, m := range metrics {
+		switch m.MType {
+		case "gauge":
+			if m.Value != nil {
+				s.UpdateGauge(ctx, m.ID, *m.Value)
+			}
+		case "counter":
+			if m.Delta != nil {
+				s.UpdateCounter(ctx, m.ID, *m.Delta)
+			}
+		}
+	}
+	return nil
 }

@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
+
+	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 )
 
 type PostgresStorage struct {
@@ -86,4 +88,46 @@ func (s *PostgresStorage) GetAllCounters(ctx context.Context) map[string]int64 {
 		return result
 	}
 	return result
+}
+
+func (s *PostgresStorage) UpdateBatch(ctx context.Context, metrics []models.Metrics) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	gaugeStmt, err := tx.PrepareContext(ctx,
+		`INSERT INTO metrics (id,type,value) VALUES ($1, 'gauge', $2)
+		ON CONFLICT (id, type) DO UPDATE SET value =$2`)
+	if err != nil {
+		return err
+	}
+	defer gaugeStmt.Close()
+
+	counterStmt, err := tx.PrepareContext(ctx,
+		`INSERT INTO metrics (id,type,delta) VALUES ($1, 'counter', $2)
+		ON CONFLICT (id, type) DO UPDATE SET delta= metrics.delta + $2`)
+	if err != nil {
+		return err
+	}
+	defer counterStmt.Close()
+
+	for _, m := range metrics {
+		switch m.MType {
+		case "gauge":
+			if m.Value != nil {
+				if _, err := gaugeStmt.ExecContext(ctx, m.ID, *m.Value); err != nil {
+					return err
+				}
+			}
+		case "counter":
+			if m.Delta != nil {
+				if _, err := counterStmt.ExecContext(ctx, m.ID, *m.Delta); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return tx.Commit()
 }
