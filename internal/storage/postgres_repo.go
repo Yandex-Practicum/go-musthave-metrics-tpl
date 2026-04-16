@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/retry"
 )
 
 type PostgresStorage struct {
@@ -15,16 +16,22 @@ func NewPostgresStorege(db *sql.DB) *PostgresStorage {
 	return &PostgresStorage{db: db}
 }
 
-func (s *PostgresStorage) UpdateGauge(ctx context.Context, name string, value float64) {
-	s.db.ExecContext(ctx,
-		`INSERT INTO metrics(id,type,value) VALUES($1,'gauge', $2)
+func (s *PostgresStorage) UpdateGauge(ctx context.Context, name string, value float64) error {
+	return retry.Do(ctx, func() error {
+		_, err := s.db.ExecContext(ctx,
+			`INSERT INTO metrics(id,type,value) VALUES($1,'gauge', $2)
 	ON CONFLICT(id,type) DO UPDATE SET value = $2`, name, value)
+		return err
+	})
 }
 
-func (s *PostgresStorage) UpdateCounter(ctx context.Context, name string, delta int64) {
-	s.db.ExecContext(ctx,
-		`INSERT INTO mertics (id,type,delta) VALUES ($1, 'counter', $2)
+func (s *PostgresStorage) UpdateCounter(ctx context.Context, name string, delta int64) error {
+	return retry.Do(ctx, func() error {
+		_, err := s.db.ExecContext(ctx,
+			`INSERT INTO metrics (id,type,delta) VALUES ($1, 'counter', $2)
 		ON CONFLICT (id, type) DO UPDATE SET delta = metrics.delta + $2`, name, delta)
+		return err
+	})
 }
 
 func (s *PostgresStorage) GetGauge(ctx context.Context, name string) (float64, bool) {
@@ -91,43 +98,45 @@ func (s *PostgresStorage) GetAllCounters(ctx context.Context) map[string]int64 {
 }
 
 func (s *PostgresStorage) UpdateBatch(ctx context.Context, metrics []models.Metrics) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	return retry.Do(ctx, func() error {
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
 
-	gaugeStmt, err := tx.PrepareContext(ctx,
-		`INSERT INTO metrics (id,type,value) VALUES ($1, 'gauge', $2)
+		gaugeStmt, err := tx.PrepareContext(ctx,
+			`INSERT INTO metrics (id,type,value) VALUES ($1, 'gauge', $2)
 		ON CONFLICT (id, type) DO UPDATE SET value =$2`)
-	if err != nil {
-		return err
-	}
-	defer gaugeStmt.Close()
+		if err != nil {
+			return err
+		}
+		defer gaugeStmt.Close()
 
-	counterStmt, err := tx.PrepareContext(ctx,
-		`INSERT INTO metrics (id,type,delta) VALUES ($1, 'counter', $2)
+		counterStmt, err := tx.PrepareContext(ctx,
+			`INSERT INTO metrics (id,type,delta) VALUES ($1, 'counter', $2)
 		ON CONFLICT (id, type) DO UPDATE SET delta= metrics.delta + $2`)
-	if err != nil {
-		return err
-	}
-	defer counterStmt.Close()
+		if err != nil {
+			return err
+		}
+		defer counterStmt.Close()
 
-	for _, m := range metrics {
-		switch m.MType {
-		case "gauge":
-			if m.Value != nil {
-				if _, err := gaugeStmt.ExecContext(ctx, m.ID, *m.Value); err != nil {
-					return err
+		for _, m := range metrics {
+			switch m.MType {
+			case "gauge":
+				if m.Value != nil {
+					if _, err := gaugeStmt.ExecContext(ctx, m.ID, *m.Value); err != nil {
+						return err
+					}
 				}
-			}
-		case "counter":
-			if m.Delta != nil {
-				if _, err := counterStmt.ExecContext(ctx, m.ID, *m.Delta); err != nil {
-					return err
+			case "counter":
+				if m.Delta != nil {
+					if _, err := counterStmt.ExecContext(ctx, m.ID, *m.Delta); err != nil {
+						return err
+					}
 				}
 			}
 		}
-	}
-	return tx.Commit()
+		return tx.Commit()
+	})
 }

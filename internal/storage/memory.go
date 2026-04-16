@@ -25,22 +25,24 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (s *MemoryStorage) UpdateGauge(ctx context.Context, name string, value float64) {
+func (s *MemoryStorage) UpdateGauge(ctx context.Context, name string, value float64) error {
 	s.mu.Lock()
 	s.gauges[name] = value
 	s.mu.Unlock()
 	if s.syncFile != "" {
 		SaveToFile(s, s.syncFile)
 	}
+	return nil
 }
 
-func (s *MemoryStorage) UpdateCounter(ctx context.Context, name string, delta int64) {
+func (s *MemoryStorage) UpdateCounter(ctx context.Context, name string, delta int64) error {
 	s.mu.Lock()
 	s.counters[name] += delta
 	s.mu.Unlock()
 	if s.syncFile != "" {
 		SaveToFile(s, s.syncFile)
 	}
+	return nil
 }
 
 func (s *MemoryStorage) GetGauge(ctx context.Context, name string) (float64, bool) {

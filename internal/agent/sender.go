@@ -3,12 +3,14 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/retry"
 )
 
 const pollCountName = "PollCount"
@@ -52,24 +54,28 @@ func (s *Sender) postjson(m models.Metrics) error {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, s.baseURL+"/update/", &buf)
-	if err != nil {
-		return err
-	}
+	compressed := buf.Bytes()
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
+	return retry.Do(context.Background(), func() error {
+		req, err := http.NewRequest(http.MethodPost, s.baseURL+"/update/", bytes.NewReader(compressed))
+		if err != nil {
+			return err
+		}
 
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return err
-	}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Encoding", "gzip")
 
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status: %s", resp.Status)
-	}
-	return nil
+		resp, err := s.client.Do(req)
+		if err != nil {
+			return err
+		}
+
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("unexpected status: %s", resp.Status)
+		}
+		return nil
+	})
 }
 
 func (s *Sender) SendGauge(name string, value float64) error {
@@ -139,21 +145,26 @@ func (s *Sender) SendBatch(gauge []GaugeMetric, pollCountDelta int64) error {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, s.baseURL+"/updates/", &buf)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
+	compressed := buf.Bytes()
 
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+	return retry.Do(context.Background(), func() error {
+		req, err := http.NewRequest(http.MethodPost, s.baseURL+"/updates/", bytes.NewReader(compressed))
+		if err != nil {
+			return err
+		}
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("ошибка: %s", resp.Status)
-	}
-	return nil
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Encoding", "gzip")
+
+		resp, err := s.client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("ошибка: %s", resp.Status)
+		}
+		return nil
+	})
 }

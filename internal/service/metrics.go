@@ -15,12 +15,12 @@ func NewMetricsService(repo storage.Repository) MetricsService {
 	return &metricService{repo: repo}
 }
 
-func (s *metricService) UpdateGauge(ctx context.Context, name string, value float64) {
-	s.repo.UpdateGauge(ctx, name, value)
+func (s *metricService) UpdateGauge(ctx context.Context, name string, value float64) error {
+	return s.repo.UpdateGauge(ctx, name, value)
 }
 
-func (s *metricService) UpdateCounter(ctx context.Context, name string, delta int64) {
-	s.repo.UpdateCounter(ctx, name, delta)
+func (s *metricService) UpdateCounter(ctx context.Context, name string, delta int64) error {
+	return s.repo.UpdateCounter(ctx, name, delta)
 }
 
 func (s *metricService) GetGauge(ctx context.Context, name string) (float64, bool) {

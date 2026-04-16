@@ -7,8 +7,8 @@ import (
 )
 
 type Repository interface {
-	UpdateGauge(ctx context.Context, name string, value float64)
-	UpdateCounter(ctx context.Context, name string, delta int64)
+	UpdateGauge(ctx context.Context, name string, value float64) error
+	UpdateCounter(ctx context.Context, name string, delta int64) error
 	GetGauge(ctx context.Context, name string) (value float64, ok bool)
 	GetCounter(ctx context.Context, name string) (value int64, ok bool)
 	GetAllGauges(ctx context.Context) map[string]float64

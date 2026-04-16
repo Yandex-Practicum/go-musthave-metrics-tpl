@@ -204,7 +204,7 @@ func TestSender_SendAll(t *testing.T) {
 			pollCountDelta: 1,
 			serverCode:     http.StatusInternalServerError,
 			wantErr:        true,
-			wantCount:      1,
+			wantCount:      4,
 		},
 	}
 	for _, tt := range tests {

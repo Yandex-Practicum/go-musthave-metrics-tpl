@@ -20,11 +20,17 @@ func UpdatesJSONHandler(svc service.MetricsService) http.HandlerFunc {
 			switch metricType(m.MType) {
 			case typeGauge:
 				if m.Value != nil {
-					svc.UpdateGauge(r.Context(), m.ID, *m.Value)
+					if err := svc.UpdateGauge(r.Context(), m.ID, *m.Value); err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
 				}
 			case typeCounter:
 				if m.Delta != nil {
-					svc.UpdateCounter(r.Context(), m.ID, *m.Delta)
+					if err := svc.UpdateCounter(r.Context(), m.ID, *m.Delta); err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
 				}
 			}
 		}

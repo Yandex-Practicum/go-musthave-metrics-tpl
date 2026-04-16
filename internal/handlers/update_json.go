@@ -22,13 +22,19 @@ func UpdateJSONHandler(srv service.MetricsService) http.HandlerFunc {
 				http.Error(w, "value is required", http.StatusBadRequest)
 				return
 			}
-			srv.UpdateGauge(r.Context(), m.ID, *m.Value)
+			if err := srv.UpdateGauge(r.Context(), m.ID, *m.Value); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		case typeCounter:
 			if m.Delta == nil {
 				http.Error(w, "delta is required", http.StatusBadRequest)
 				return
 			}
-			srv.UpdateCounter(r.Context(), m.ID, *m.Delta)
+			if err := srv.UpdateCounter(r.Context(), m.ID, *m.Delta); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		default:
 			http.Error(w, "unknown metric type", http.StatusBadRequest)
 			return
