@@ -17,8 +17,22 @@ func IsRetriable(err error) bool {
 	}
 
 	var pgErr *pgconn.PgError
+
 	if errors.As(err, &pgErr) {
-		return pgerrcode.IsConnectionException(pgErr.Code)
+		switch {
+		case pgerrcode.IsConnectionException(pgErr.Code): //Class 08
+			return true
+		case pgErr.Code == "40001": // serialization_failure
+			return true
+		case pgErr.Code == "40P01": // deadlock_detected
+			return true
+		case pgErr.Code == "57P01": // admin_shutdown
+			return true
+		case pgErr.Code == "53300": // too_many_connections
+			return true
+		default:
+			return false
+		}
 	}
 	return true
 }

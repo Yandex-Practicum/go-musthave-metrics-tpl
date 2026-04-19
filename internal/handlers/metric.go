@@ -6,6 +6,7 @@ import (
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
 )
 
 type metricType string
@@ -34,7 +35,8 @@ func MetricsHandler(srv service.MetricsService) http.HandlerFunc {
 				return
 			}
 			if err := srv.UpdateGauge(r.Context(), name, value); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Error().Err(err).Msg("ошибка обновления gauge")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		case typeCounter:
@@ -44,7 +46,8 @@ func MetricsHandler(srv service.MetricsService) http.HandlerFunc {
 				return
 			}
 			if err := srv.UpdateCounter(r.Context(), name, delta); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Error().Err(err).Msg("ошибка обновления counter")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		default:

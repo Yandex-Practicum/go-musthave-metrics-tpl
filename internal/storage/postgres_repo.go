@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/retry"
@@ -70,7 +72,7 @@ func (s *PostgresStorage) GetAllGauges(ctx context.Context) map[string]float64 {
 		result[name] = value
 	}
 	if err := rows.Err(); err != nil {
-		return result
+		return make(map[string]float64)
 	}
 	return result
 }
@@ -92,12 +94,16 @@ func (s *PostgresStorage) GetAllCounters(ctx context.Context) map[string]int64 {
 		result[name] = delta
 	}
 	if err := rows.Err(); err != nil {
-		return result
+		return make(map[string]int64)
 	}
 	return result
 }
 
 func (s *PostgresStorage) UpdateBatch(ctx context.Context, metrics []models.Metrics) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
 	return retry.Do(ctx, func() error {
 		tx, err := s.db.BeginTx(ctx, nil)
 		if err != nil {
@@ -113,30 +119,50 @@ func (s *PostgresStorage) UpdateBatch(ctx context.Context, metrics []models.Metr
 		}
 		defer gaugeStmt.Close()
 
-		counterStmt, err := tx.PrepareContext(ctx,
-			`INSERT INTO metrics (id,type,delta) VALUES ($1, 'counter', $2)
-		ON CONFLICT (id, type) DO UPDATE SET delta= metrics.delta + $2`)
-		if err != nil {
-			return err
-		}
-		defer counterStmt.Close()
+		var gaugeArgs []interface{}
+		var counterArgs []interface{}
+		var gaugeValues []string
+		var counterValues []string
+		gIdx := 1
+		cIdx := 1
 
 		for _, m := range metrics {
 			switch m.MType {
 			case "gauge":
 				if m.Value != nil {
-					if _, err := gaugeStmt.ExecContext(ctx, m.ID, *m.Value); err != nil {
-						return err
-					}
+					gaugeValues = append(gaugeValues, fmt.Sprintf("($%d, 'gauge', $%)", gIdx, gIdx+1))
+					gaugeArgs = append(gaugeArgs, m.ID, *m.Value)
+					gIdx += 2
 				}
 			case "counter":
 				if m.Delta != nil {
-					if _, err := counterStmt.ExecContext(ctx, m.ID, *m.Delta); err != nil {
-						return err
-					}
+					counterValues = append(counterValues, fmt.Sprintf("($%d, 'counter', $%d)", cIdx, cIdx+1))
+					counterArgs = append(counterArgs, m.ID, *m.Delta)
+					cIdx += 2
 				}
 			}
 		}
+
+		if len(gaugeValues) > 0 {
+			query := fmt.Sprintf(
+				`INSERT INTO metrics (id, type, value) VALUES %s
+			ON CONFLICT (id, type) DO UPDATE SET value = EXCLUDED.value`,
+				strings.Join(gaugeValues, ","))
+			if _, err := tx.ExecContext(ctx, query, gaugeArgs...); err != nil {
+				return err
+			}
+		}
+
+		if len(counterValues) > 0 {
+			query := fmt.Sprintf(
+				`INSERT INTO metrics (id, type, value) VALUES %s
+			ON CONFLICT (id, type) DO UPDATE SET delta = metrics.delta + EXCLUDED.delta`,
+				strings.Join(counterValues, ","))
+			if _, err := tx.ExecContext(ctx, query, counterArgs...); err != nil {
+				return err
+			}
+		}
+
 		return tx.Commit()
 	})
 }

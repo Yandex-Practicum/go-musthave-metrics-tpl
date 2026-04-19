@@ -6,6 +6,7 @@ import (
 
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
+	"github.com/rs/zerolog/log"
 )
 
 func UpdateJSONHandler(srv service.MetricsService) http.HandlerFunc {
@@ -23,7 +24,8 @@ func UpdateJSONHandler(srv service.MetricsService) http.HandlerFunc {
 				return
 			}
 			if err := srv.UpdateGauge(r.Context(), m.ID, *m.Value); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Error().Err(err).Msg("ошибка обновления gauge")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		case typeCounter:
@@ -32,7 +34,8 @@ func UpdateJSONHandler(srv service.MetricsService) http.HandlerFunc {
 				return
 			}
 			if err := srv.UpdateCounter(r.Context(), m.ID, *m.Delta); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Error().Err(err).Msg("ошибка обновления counter")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		default:

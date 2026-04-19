@@ -3,14 +3,13 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
-	"github.com/bluegopher/go-musthave-metrics-tpl/internal/retry"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 const pollCountName = "PollCount"
@@ -21,16 +20,14 @@ type Sender struct {
 }
 
 func NewSender(baseURL string) *Sender {
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = 3
+	retryClient.RetryWaitMin = 1 * time.Second
+	retryClient.RetryWaitMax = 5 * time.Second
+
 	return &Sender{
 		baseURL: baseURL,
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-			Transport: &http.Transport{
-				MaxIdleConns:        100,
-				MaxIdleConnsPerHost: 10,
-				IdleConnTimeout:     90 * time.Second,
-			},
-		},
+		client:  retryClient.StandardClient(),
 	}
 }
 
@@ -54,28 +51,24 @@ func (s *Sender) postjson(m models.Metrics) error {
 		return err
 	}
 
-	compressed := buf.Bytes()
+	req, err := http.NewRequest(http.MethodPost, s.baseURL+"/update/", &buf)
+	if err != nil {
+		return err
+	}
 
-	return retry.Do(context.Background(), func() error {
-		req, err := http.NewRequest(http.MethodPost, s.baseURL+"/update/", bytes.NewReader(compressed))
-		if err != nil {
-			return err
-		}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
 
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Content-Encoding", "gzip")
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
 
-		resp, err := s.client.Do(req)
-		if err != nil {
-			return err
-		}
-
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("unexpected status: %s", resp.Status)
-		}
-		return nil
-	})
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status: %s", resp.Status)
+	}
+	return nil
 }
 
 func (s *Sender) SendGauge(name string, value float64) error {
@@ -145,26 +138,23 @@ func (s *Sender) SendBatch(gauge []GaugeMetric, pollCountDelta int64) error {
 		return err
 	}
 
-	compressed := buf.Bytes()
+	req, err := http.NewRequest(http.MethodPost, s.baseURL+"/updates/", &buf)
+	if err != nil {
+		return err
+	}
 
-	return retry.Do(context.Background(), func() error {
-		req, err := http.NewRequest(http.MethodPost, s.baseURL+"/updates/", bytes.NewReader(compressed))
-		if err != nil {
-			return err
-		}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
 
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Content-Encoding", "gzip")
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-		resp, err := s.client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("ошибка: %s", resp.Status)
+	}
+	return nil
 
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("ошибка: %s", resp.Status)
-		}
-		return nil
-	})
 }
