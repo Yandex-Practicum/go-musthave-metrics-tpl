@@ -130,7 +130,7 @@ func (s *PostgresStorage) UpdateBatch(ctx context.Context, metrics []models.Metr
 			switch m.MType {
 			case "gauge":
 				if m.Value != nil {
-					gaugeValues = append(gaugeValues, fmt.Sprintf("($%d, 'gauge', $%)", gIdx, gIdx+1))
+					gaugeValues = append(gaugeValues, fmt.Sprintf("($%d, 'gauge', $%d)", gIdx, gIdx+1))
 					gaugeArgs = append(gaugeArgs, m.ID, *m.Value)
 					gIdx += 2
 				}
