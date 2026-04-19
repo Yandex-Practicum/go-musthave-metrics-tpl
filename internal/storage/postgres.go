@@ -22,5 +22,19 @@ func NewPostgresDB(dsn string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	_, err = db.ExecContext(context.Background(), `
+		CREATE TABLE IF NOT EXISTS metrics (
+			id VARCHAR(255) NOT NULL,
+			type VARCHAR(10) NOT NULL,
+			delta BIGINT,
+			value DOUBLE PRECISION,
+			PRIMARY KEY (id, type)
+		)
+	`)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	return db, nil
 }
