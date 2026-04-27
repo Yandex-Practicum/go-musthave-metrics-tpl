@@ -25,7 +25,7 @@ func main() {
 			lastGauges = agent.CollectGauges()
 			pollsSinceReport++
 		case <-reportTicker.C:
-			if err := sender.SendAll(lastGauges, pollsSinceReport); err != nil {
+			if err := sender.SendBatch(lastGauges, pollsSinceReport); err != nil {
 				log.Error().Err(err).Msg("отправка метрик")
 				continue
 			}

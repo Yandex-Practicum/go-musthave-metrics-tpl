@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,27 +20,31 @@ import (
 type Server struct {
 	addr   string
 	repo   storage.Repository
+	db     *sql.DB
 	server *http.Server
 }
 
-func New(addr string, repo storage.Repository) *Server {
+func New(addr string, repo storage.Repository, db *sql.DB) *Server {
 	return &Server{
 		addr: addr,
 		repo: repo,
+		db:   db,
 	}
 }
 
 func (s *Server) Run() error {
-	service := service.NewMetricsService(s.repo)
+	svc := service.NewMetricsService(s.repo)
 
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
-	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(service))
-	r.Post("/update/", handlers.UpdateJSONHandler(service))
-	r.Get("/value/{type}/{name}", handlers.ValueHandler(service))
-	r.Post("/value/", handlers.ValueJSONHandler(service))
-	r.Get("/", handlers.ListHandler(service))
+	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(svc))
+	r.Post("/update/", handlers.UpdateJSONHandler(svc))
+	r.Get("/value/{type}/{name}", handlers.ValueHandler(svc))
+	r.Post("/value/", handlers.ValueJSONHandler(svc))
+	r.Get("/", handlers.ListHandler(svc))
+	r.Get("/ping", handlers.PingHandler(s.db))
+	r.Post("/updates/", handlers.UpdatesJSONHandler(svc))
 
 	srv := &http.Server{
 		Addr:         s.addr,

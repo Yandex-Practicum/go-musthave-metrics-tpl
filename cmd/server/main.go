@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"os"
 	"strconv"
@@ -18,6 +19,7 @@ func main() {
 	storeInterval := flag.Int("i", 300, "интервал сохранения на диск (сек)")
 	filePath := flag.String("f", "metrics.json", "путь до файла хранения")
 	restore := flag.Bool("r", true, "загружать данныепри старте")
+	databaseDSN := flag.String("d", "", "строка подклюучения к PostgreSQL")
 	flag.Parse()
 
 	if v := os.Getenv("ADDRESS"); v != "" {
@@ -44,29 +46,47 @@ func main() {
 		*restore = b
 	}
 
+	if v := os.Getenv("DATABASE_DSN"); v != "" {
+		*databaseDSN = v
+	}
+
 	if err := logger.Initialize(*logLevel); err != nil {
 		log.Fatal().Err(err).Msg("ошибка инициализации логгера")
 	}
 
-	repo := storage.NewMemoryStorage()
+	var repo storage.Repository
+	var db *sql.DB
 
-	// загрузка метрик из файла при старте
-	if *restore && *filePath != "" {
-		if err := storage.LoadFromFile(repo, *filePath); err != nil {
-			log.Error().Err(err).Msg("Не удалось загрузить метрик")
+	if *databaseDSN != "" {
+		var err error
+		db, err = storage.NewPostgresDB(*databaseDSN)
+		if err != nil {
+			log.Fatal().Err(err).Msg("ошибка при подключения к БД")
 		}
-	}
-	// периодическое сохранение на диск
-	if *filePath != "" && *storeInterval > 0 {
-		go storage.RunSaver(repo, *filePath, time.Duration(*storeInterval)*time.Second)
-	}
-	//синхронная запись — передаём filePath в сервер
-	if *filePath != "" && *storeInterval == 0 {
-		repo.SetSyncFile(*filePath)
+		repo = storage.NewPostgresStorege(db)
+	} else {
+		memRepo := storage.NewMemoryStorage()
+
+		// загрузка метрик из файла при старте
+		if *restore && *filePath != "" {
+			if err := storage.LoadFromFile(memRepo, *filePath); err != nil {
+				log.Error().Err(err).Msg("Не удалось загрузить метрик")
+			}
+		}
+		// периодическое сохранение на диск
+		if *filePath != "" && *storeInterval > 0 {
+			go storage.RunSaver(memRepo, *filePath, time.Duration(*storeInterval)*time.Second)
+		}
+		//синхронная запись — передаём filePath в сервер
+		if *filePath != "" && *storeInterval == 0 {
+			memRepo.SetSyncFile(*filePath)
+		}
+		repo = memRepo
 	}
 
-	srv := server.New(*addr, repo)
+	srv := server.New(*addr, repo, db)
 	if err := srv.Run(); err != nil {
 		log.Fatal().Err(err).Msg("ошибка запуска сервера")
 	}
+
 }

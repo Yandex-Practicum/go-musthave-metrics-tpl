@@ -17,11 +17,10 @@ type agentConfig struct {
 
 func parseConfig() agentConfig {
 	addr := flag.String("a", "localhost:8080", "адрес сервера (host:port)")
-	pollInterval := flag.Duration("p", 2*time.Second, "интервал сбора метрик")
-	reportInterval := flag.Duration("r", 10*time.Second, "интервал отправки метрик на сервер")
+	pollInterval := flag.Int("p", 2, "интервал сбора метрик (сек)")
+	reportInterval := flag.Int("r", 10, "интервал отправки метрик на сервер (сек)")
 	flag.Parse()
 
-	//перезапись
 	if v := os.Getenv("ADDRESS"); v != "" {
 		*addr = v
 	}
@@ -31,7 +30,7 @@ func parseConfig() agentConfig {
 		if err != nil {
 			log.Fatal().Err(err).Msg("неверное значение REPORT_INTERVAL")
 		}
-		*reportInterval = time.Duration(sec) * time.Second
+		*reportInterval = sec
 	}
 
 	if v := os.Getenv("POLL_INTERVAL"); v != "" {
@@ -39,13 +38,12 @@ func parseConfig() agentConfig {
 		if err != nil {
 			log.Fatal().Err(err).Msg("неверное значение POLL_INTERVAL")
 		}
-		*pollInterval = time.Duration(sec) * time.Second
-	}
-	//
-	return agentConfig{
-		Addr:           *addr,
-		PollInterval:   *pollInterval,
-		ReportInterval: *reportInterval,
+		*pollInterval = sec
 	}
 
+	return agentConfig{
+		Addr:           *addr,
+		PollInterval:   time.Duration(*pollInterval) * time.Second,
+		ReportInterval: time.Duration(*reportInterval) * time.Second,
+	}
 }
