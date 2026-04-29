@@ -3,6 +3,9 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,9 +20,10 @@ const pollCountName = "PollCount"
 type Sender struct {
 	baseURL string
 	client  *http.Client
+	hashKey string
 }
 
-func NewSender(baseURL string) *Sender {
+func NewSender(baseURL string, hashKey string) *Sender {
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = 3
 	retryClient.RetryWaitMin = 1 * time.Second
@@ -28,6 +32,7 @@ func NewSender(baseURL string) *Sender {
 	return &Sender{
 		baseURL: baseURL,
 		client:  retryClient.StandardClient(),
+		hashKey: hashKey,
 	}
 }
 
@@ -35,6 +40,13 @@ func (s *Sender) postjson(m models.Metrics) error {
 	data, err := json.Marshal(m)
 	if err != nil {
 		return err
+	}
+
+	var hashValue string
+	if s.hashKey != "" {
+		h := hmac.New(sha256.New, []byte(s.hashKey))
+		h.Write(data)
+		hashValue = hex.EncodeToString(h.Sum(nil))
 	}
 
 	var buf bytes.Buffer
@@ -58,6 +70,9 @@ func (s *Sender) postjson(m models.Metrics) error {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
+	if hashValue != "" {
+		req.Header.Set("HashSHA256", hashValue)
+	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -126,6 +141,13 @@ func (s *Sender) SendBatch(gauge []GaugeMetric, pollCountDelta int64) error {
 		return err
 	}
 
+	var hashValue string
+	if s.hashKey != "" {
+		h := hmac.New(sha256.New, []byte(s.hashKey))
+		h.Write(data)
+		hashValue = hex.EncodeToString(h.Sum(nil))
+	}
+
 	var buf bytes.Buffer
 	gz, err := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
 	if err != nil {
@@ -145,6 +167,9 @@ func (s *Sender) SendBatch(gauge []GaugeMetric, pollCountDelta int64) error {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
+	if hashValue != "" {
+		req.Header.Set("HashSHA256", hashValue)
+	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {

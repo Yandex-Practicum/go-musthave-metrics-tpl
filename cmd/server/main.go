@@ -20,6 +20,7 @@ func main() {
 	filePath := flag.String("f", "metrics.json", "путь до файла хранения")
 	restore := flag.Bool("r", true, "загружать данныепри старте")
 	databaseDSN := flag.String("d", "", "строка подклюучения к PostgreSQL")
+	hashKey := flag.String("k", "", "ключ для подписи SHA256")
 	flag.Parse()
 
 	if v := os.Getenv("ADDRESS"); v != "" {
@@ -48,6 +49,10 @@ func main() {
 
 	if v := os.Getenv("DATABASE_DSN"); v != "" {
 		*databaseDSN = v
+	}
+
+	if v := os.Getenv("KEY"); v != "" {
+		*hashKey = v
 	}
 
 	if err := logger.Initialize(*logLevel); err != nil {
@@ -84,7 +89,7 @@ func main() {
 		repo = memRepo
 	}
 
-	srv := server.New(*addr, repo, db)
+	srv := server.New(*addr, repo, db, *hashKey)
 	if err := srv.Run(); err != nil {
 		log.Fatal().Err(err).Msg("ошибка запуска сервера")
 	}

@@ -60,7 +60,7 @@ func TestSender_SendGauge(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			sender := NewSender(srv.URL)
+			sender := NewSender(srv.URL, "")
 			err := sender.SendGauge(tt.metricName, tt.value)
 
 			if tt.wantErr {
@@ -142,7 +142,7 @@ func TestSender_SendCounter(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			sender := NewSender(srv.URL)
+			sender := NewSender(srv.URL, "")
 			err := sender.SendCounter(tt.metricName, tt.delta)
 
 			if tt.wantErr {
@@ -217,7 +217,7 @@ func TestSender_SendAll(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			sender := NewSender(srv.URL)
+			sender := NewSender(srv.URL, "")
 			err := sender.SendAll(tt.gauges, tt.pollCountDelta)
 
 			if tt.wantErr {
@@ -295,7 +295,7 @@ func TestSender_SendBatch(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			sender := NewSender(srv.URL)
+			sender := NewSender(srv.URL, "")
 			err := sender.SendBatch(tt.gauges, tt.delta)
 
 			if tt.wantErr {

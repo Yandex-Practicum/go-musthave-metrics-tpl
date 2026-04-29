@@ -11,7 +11,7 @@ func main() {
 	cfg := parseConfig()
 
 	baseURL := "http://" + cfg.Addr
-	sender := agent.NewSender(baseURL)
+	sender := agent.NewSender(baseURL, cfg.HashKey)
 
 	var lastGauges []agent.GaugeMetric
 	var pollsSinceReport int64

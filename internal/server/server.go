@@ -18,17 +18,19 @@ import (
 )
 
 type Server struct {
-	addr   string
-	repo   storage.Repository
-	db     *sql.DB
-	server *http.Server
+	addr    string
+	repo    storage.Repository
+	db      *sql.DB
+	hashKey string
+	server  *http.Server
 }
 
-func New(addr string, repo storage.Repository, db *sql.DB) *Server {
+func New(addr string, repo storage.Repository, db *sql.DB, hashKey string) *Server {
 	return &Server{
-		addr: addr,
-		repo: repo,
-		db:   db,
+		addr:    addr,
+		repo:    repo,
+		db:      db,
+		hashKey: hashKey,
 	}
 }
 
@@ -38,6 +40,7 @@ func (s *Server) Run() error {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
+	r.Use(middleware.HashCheckMiddleware(s.hashKey))
 	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(svc))
 	r.Post("/update/", handlers.UpdateJSONHandler(svc))
 	r.Get("/value/{type}/{name}", handlers.ValueHandler(svc))
