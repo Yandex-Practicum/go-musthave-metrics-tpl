@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"time"
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/agent"
@@ -8,29 +9,54 @@ import (
 )
 
 func main() {
+	var (
+		mu         sync.Mutex
+		lastGauges []agent.GaugeMetric
+		lastPS     []agent.GaugeMetric
+		pollCount  int64
+	)
+
 	cfg := parseConfig()
 
 	baseURL := "http://" + cfg.Addr
 	sender := agent.NewSender(baseURL, cfg.HashKey)
 
-	var lastGauges []agent.GaugeMetric
-	var pollsSinceReport int64
+	go func() {
+		ticker := time.NewTicker(cfg.PollInterval)
+		for range ticker.C {
+			gauges := agent.CollectGauges()
+			mu.Lock()
+			lastGauges = gauges
+			pollCount++
+			mu.Unlock()
+		}
+	}()
 
-	pollTicker := time.NewTicker(cfg.PollInterval)
+	go func() {
+		ticker := time.NewTicker(cfg.PollInterval)
+		for range ticker.C {
+			ps := agent.CollectPSUtilMetrics()
+			mu.Lock()
+			lastPS = ps
+			mu.Unlock()
+		}
+	}()
+
+	sem := make(chan struct{}, cfg.RateLimit)
 	reportTicker := time.NewTicker(cfg.ReportInterval)
 
-	for {
-		select {
-		case <-pollTicker.C:
-			lastGauges = agent.CollectGauges()
-			pollsSinceReport++
-		case <-reportTicker.C:
-			if err := sender.SendBatch(lastGauges, pollsSinceReport); err != nil {
+	for range reportTicker.C {
+		mu.Lock()
+		all := append(lastGauges, lastPS...)
+		ps := pollCount
+		mu.Unlock()
+
+		sem <- struct{}{}
+		go func(metrics []agent.GaugeMetric, count int64) {
+			defer func() { <-sem }()
+			if err := sender.SendBatch(metrics, count); err != nil {
 				log.Error().Err(err).Msg("отправка метрик")
-				continue
 			}
-			log.Info().Int64("polls", pollsSinceReport).Msg("метрики отправлены")
-			pollsSinceReport = 0
-		}
+		}(all, ps)
 	}
 }

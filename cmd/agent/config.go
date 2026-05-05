@@ -14,6 +14,7 @@ type agentConfig struct {
 	PollInterval   time.Duration
 	ReportInterval time.Duration
 	HashKey        string
+	RateLimit      int
 }
 
 func parseConfig() agentConfig {
@@ -21,6 +22,8 @@ func parseConfig() agentConfig {
 	pollInterval := flag.Int("p", 2, "интервал сбора метрик (сек)")
 	reportInterval := flag.Int("r", 10, "интервал отправки метрик на сервер (сек)")
 	hashKey := flag.String("k", "", "ключ для подписи SHA256")
+	rateLimit := flag.Int("l", 1, "количество одновременных запросов")
+
 	flag.Parse()
 
 	if v := os.Getenv("ADDRESS"); v != "" {
@@ -43,6 +46,14 @@ func parseConfig() agentConfig {
 		*pollInterval = sec
 	}
 
+	if v := os.Getenv("RATE_LIMIT"); v != "" {
+		rl, err := strconv.Atoi(v)
+		if err != nil {
+			log.Fatal().Err(err).Msg("неверное значение RATE_LIMIT")
+		}
+		*rateLimit = rl
+	}
+
 	if v := os.Getenv("KEY"); v != "" {
 		*hashKey = v
 	}
@@ -52,5 +63,6 @@ func parseConfig() agentConfig {
 		PollInterval:   time.Duration(*pollInterval) * time.Second,
 		ReportInterval: time.Duration(*reportInterval) * time.Second,
 		HashKey:        *hashKey,
+		RateLimit:      *rateLimit,
 	}
 }
