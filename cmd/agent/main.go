@@ -1,7 +1,6 @@
 package main
 
 import (
-	"sync"
 	"time"
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/agent"
@@ -9,36 +8,26 @@ import (
 )
 
 func main() {
-	var (
-		mu         sync.Mutex
-		lastGauges []agent.GaugeMetric
-		lastPS     []agent.GaugeMetric
-		pollCount  int64
-	)
-
-	cfg := parseConfig()
+	cfg, err := parseConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("ошибка конфигурации")
+	}
 
 	baseURL := "http://" + cfg.Addr
 	sender := agent.NewSender(baseURL, cfg.HashKey)
+	store := agent.NewMetricsStore()
 
 	go func() {
 		ticker := time.NewTicker(cfg.PollInterval)
 		for range ticker.C {
-			gauges := agent.CollectGauges()
-			mu.Lock()
-			lastGauges = gauges
-			pollCount++
-			mu.Unlock()
+			store.UpdateGauges(agent.CollectGauges())
 		}
 	}()
 
 	go func() {
 		ticker := time.NewTicker(cfg.PollInterval)
 		for range ticker.C {
-			ps := agent.CollectPSUtilMetrics()
-			mu.Lock()
-			lastPS = ps
-			mu.Unlock()
+			store.UpdatePSMetrics(agent.CollectPSUtilMetrics())
 		}
 	}()
 
@@ -46,10 +35,7 @@ func main() {
 	reportTicker := time.NewTicker(cfg.ReportInterval)
 
 	for range reportTicker.C {
-		mu.Lock()
-		all := append(lastGauges, lastPS...)
-		ps := pollCount
-		mu.Unlock()
+		all, ps := store.GetAll()
 
 		sem <- struct{}{}
 		go func(metrics []agent.GaugeMetric, count int64) {

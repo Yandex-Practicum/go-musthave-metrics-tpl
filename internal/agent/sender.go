@@ -3,14 +3,12 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/middleware/hash"
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 	"github.com/hashicorp/go-retryablehttp"
 )
@@ -43,10 +41,9 @@ func (s *Sender) postjson(m models.Metrics) error {
 	}
 
 	var hashValue string
+
 	if s.hashKey != "" {
-		h := hmac.New(sha256.New, []byte(s.hashKey))
-		h.Write(data)
-		hashValue = hex.EncodeToString(h.Sum(nil))
+		hashValue = hash.ComputeHMAC(data, s.hashKey)
 	}
 
 	var buf bytes.Buffer
@@ -143,9 +140,7 @@ func (s *Sender) SendBatch(gauge []GaugeMetric, pollCountDelta int64) error {
 
 	var hashValue string
 	if s.hashKey != "" {
-		h := hmac.New(sha256.New, []byte(s.hashKey))
-		h.Write(data)
-		hashValue = hex.EncodeToString(h.Sum(nil))
+		hashValue = hash.ComputeHMAC(data, s.hashKey)
 	}
 
 	var buf bytes.Buffer

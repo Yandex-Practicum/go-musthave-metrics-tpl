@@ -40,7 +40,6 @@ func (s *Server) Run() error {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
-	r.Use(middleware.HashCheckMiddleware(s.hashKey))
 	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(svc))
 	r.Post("/update/", handlers.UpdateJSONHandler(svc))
 	r.Get("/value/{type}/{name}", handlers.ValueHandler(svc))
@@ -48,6 +47,9 @@ func (s *Server) Run() error {
 	r.Get("/", handlers.ListHandler(svc))
 	r.Get("/ping", handlers.PingHandler(s.db))
 	r.Post("/updates/", handlers.UpdatesJSONHandler(svc))
+	if s.hashKey != "" {
+		r.Use(middleware.HashCheckMiddleware(s.hashKey))
+	}
 
 	srv := &http.Server{
 		Addr:         s.addr,

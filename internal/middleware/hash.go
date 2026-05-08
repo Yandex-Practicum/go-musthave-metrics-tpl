@@ -2,11 +2,10 @@ package middleware
 
 import (
 	"bytes"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
 	"net/http"
+
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/middleware/hash"
 )
 
 type hashResponseWriter struct {
@@ -22,12 +21,6 @@ func (w *hashResponseWriter) Write(b []byte) (int, error) {
 func HashCheckMiddleware(key string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			if key == "" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			receivedHash := r.Header.Get("HashSHA256")
 			if receivedHash != "" {
 				// читаем тело
@@ -39,26 +32,20 @@ func HashCheckMiddleware(key string) func(http.Handler) http.Handler {
 
 				r.Body = io.NopCloser(bytes.NewReader(body))
 
-				h := hmac.New(sha256.New, []byte(key))
-				h.Write(body)
-				expectedHash := hex.EncodeToString(h.Sum(nil))
-
-				if !hmac.Equal([]byte(receivedHash), []byte(expectedHash)) {
-					http.Error(w, "hash несоотвествует", http.StatusBadRequest)
+				if !hash.Verify(body, key, receivedHash) {
+					http.Error(w, "hash не соответствует", http.StatusBadRequest)
 					return
 				}
+
+				hw := &hashResponseWriter{
+					ResponseWriter: w,
+					body:           &bytes.Buffer{},
+				}
+
+				next.ServeHTTP(hw, r)
+
+				w.Header().Set("HashSHA256", hash.ComputeHMAC(hw.body.Bytes(), key))
 			}
-
-			hw := &hashResponseWriter{
-				ResponseWriter: w,
-				body:           &bytes.Buffer{},
-			}
-
-			next.ServeHTTP(hw, r)
-
-			h := hmac.New(sha256.New, []byte(key))
-			h.Write(hw.body.Bytes())
-			w.Header().Set("HashSHA256", hex.EncodeToString(h.Sum(nil)))
 		})
 	}
 }
