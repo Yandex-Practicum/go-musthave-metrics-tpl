@@ -1,0 +1,32 @@
+package handlers
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
+)
+
+func ListHandler(srv service.MetricsService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gauges := srv.GetAllGauges(r.Context())
+		counters := srv.GetAllCounters(r.Context())
+
+		var sb strings.Builder
+		sb.WriteString("<html><body><ul>")
+
+		for name, value := range gauges {
+			sb.WriteString(fmt.Sprintf("<li>gauge %s = %g</li>", name, value))
+		}
+
+		for name, value := range counters {
+			sb.WriteString(fmt.Sprintf("<li>counter %s = %d</li>", name, value))
+		}
+		sb.WriteString("</ul></body></html>")
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, sb.String())
+	}
+}
