@@ -50,6 +50,24 @@ func TestParseConfig(t *testing.T) {
 				ReportInterval: 10 * time.Second,
 			},
 		},
+		{
+			name: "all_env_vars",
+			args: []string{"test"},
+			env: map[string]string{
+				"ADDRESS":         "localhost:1111",
+				"POLL_INTERVAL":   "7",
+				"REPORT_INTERVAL": "30",
+				"RATE_LIMIT":      "5",
+				"KEY":             "secret-key",
+			},
+			want: agentConfig{
+				Addr:           "localhost:1111",
+				PollInterval:   7 * time.Second,
+				ReportInterval: 30 * time.Second,
+				RateLimit:      5,
+				HashKey:        "secret-key",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -59,6 +77,8 @@ func TestParseConfig(t *testing.T) {
 			os.Unsetenv("ADDRESS")
 			os.Unsetenv("POLL_INTERVAL")
 			os.Unsetenv("REPORT_INTERVAL")
+			os.Unsetenv("RATE_LIMIT")
+			os.Unsetenv("KEY")
 			for k, v := range tt.env {
 				os.Setenv(k, v)
 				defer os.Unsetenv(k)
@@ -77,6 +97,44 @@ func TestParseConfig(t *testing.T) {
 			}
 			if cfg.ReportInterval != tt.want.ReportInterval {
 				t.Errorf("ReportInterval = %v, want %v", cfg.ReportInterval, tt.want.ReportInterval)
+			}
+			if tt.want.RateLimit != 0 && cfg.RateLimit != tt.want.RateLimit {
+				t.Errorf("RateLimit = %d, want %d", cfg.RateLimit, tt.want.RateLimit)
+			}
+			if tt.want.HashKey != "" && cfg.HashKey != tt.want.HashKey {
+				t.Errorf("HashKey = %q, want %q", cfg.HashKey, tt.want.HashKey)
+			}
+		})
+	}
+}
+
+func TestParseConfig_InvalidEnv(t *testing.T) {
+	tests := []struct {
+		name   string
+		envKey string
+		envVal string
+	}{
+		{name: "invalid_report_interval", envKey: "REPORT_INTERVAL", envVal: "abc"},
+		{name: "invalid_poll_interval", envKey: "POLL_INTERVAL", envVal: "xyz"},
+		{name: "invalid_rate_limit", envKey: "RATE_LIMIT", envVal: "notnum"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+			os.Args = []string{"test"}
+
+			os.Unsetenv("ADDRESS")
+			os.Unsetenv("POLL_INTERVAL")
+			os.Unsetenv("REPORT_INTERVAL")
+			os.Unsetenv("RATE_LIMIT")
+			os.Unsetenv("KEY")
+
+			os.Setenv(tt.envKey, tt.envVal)
+			defer os.Unsetenv(tt.envKey)
+
+			_, err := parseConfig()
+			if err == nil {
+				t.Errorf("ожидали ошибку для %s=%q", tt.envKey, tt.envVal)
 			}
 		})
 	}
