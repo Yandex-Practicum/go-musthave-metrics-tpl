@@ -2,9 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"flag"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/logger"
@@ -14,52 +11,21 @@ import (
 )
 
 func main() {
-	addr := flag.String("a", ":8080", "адрес сервера (host:port)")
-	logLevel := flag.String("l", "info", "уровень логирования")
-	storeInterval := flag.Int("i", 300, "интервал сохранения на диск (сек)")
-	filePath := flag.String("f", "metrics.json", "путь до файла хранения")
-	restore := flag.Bool("r", true, "загружать данныепри старте")
-	databaseDSN := flag.String("d", "", "строка подклюучения к PostgreSQL")
-	flag.Parse()
-
-	if v := os.Getenv("ADDRESS"); v != "" {
-		*addr = v
+	cfg, err := parseConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("ошибка конфигурации")
 	}
 
-	if v := os.Getenv("STORE_INTERVAL"); v != "" {
-		sec, err := strconv.Atoi(v)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Неверное значение STORE_INTERVAL:")
-		}
-		*storeInterval = sec
-	}
-
-	if v := os.Getenv("FILE_STORAGE_PATH"); v != "" {
-		*filePath = v
-	}
-
-	if v := os.Getenv("RESTORE"); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Неверное значение RESTORE")
-		}
-		*restore = b
-	}
-
-	if v := os.Getenv("DATABASE_DSN"); v != "" {
-		*databaseDSN = v
-	}
-
-	if err := logger.Initialize(*logLevel); err != nil {
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
 		log.Fatal().Err(err).Msg("ошибка инициализации логгера")
 	}
 
 	var repo storage.Repository
 	var db *sql.DB
 
-	if *databaseDSN != "" {
+	if cfg.DatabaseDSN != "" {
 		var err error
-		db, err = storage.NewPostgresDB(*databaseDSN)
+		db, err = storage.NewPostgresDB(cfg.DatabaseDSN)
 		if err != nil {
 			log.Fatal().Err(err).Msg("ошибка при подключения к БД")
 		}
@@ -68,23 +34,23 @@ func main() {
 		memRepo := storage.NewMemoryStorage()
 
 		// загрузка метрик из файла при старте
-		if *restore && *filePath != "" {
-			if err := storage.LoadFromFile(memRepo, *filePath); err != nil {
+		if cfg.Restore && cfg.FilePath != "" {
+			if err := storage.LoadFromFile(memRepo, cfg.FilePath); err != nil {
 				log.Error().Err(err).Msg("Не удалось загрузить метрик")
 			}
 		}
 		// периодическое сохранение на диск
-		if *filePath != "" && *storeInterval > 0 {
-			go storage.RunSaver(memRepo, *filePath, time.Duration(*storeInterval)*time.Second)
+		if cfg.FilePath != "" && cfg.StoreInterval > 0 {
+			go storage.RunSaver(memRepo, cfg.FilePath, time.Duration(cfg.StoreInterval)*time.Second)
 		}
 		//синхронная запись — передаём filePath в сервер
-		if *filePath != "" && *storeInterval == 0 {
-			memRepo.SetSyncFile(*filePath)
+		if cfg.FilePath != "" && cfg.StoreInterval == 0 {
+			memRepo.SetSyncFile(cfg.FilePath)
 		}
 		repo = memRepo
 	}
 
-	srv := server.New(*addr, repo, db)
+	srv := server.New(cfg.Addr, repo, db, cfg.HashKey)
 	if err := srv.Run(); err != nil {
 		log.Fatal().Err(err).Msg("ошибка запуска сервера")
 	}

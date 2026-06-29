@@ -64,7 +64,10 @@ func TestParseConfig(t *testing.T) {
 				defer os.Unsetenv(k)
 			}
 
-			cfg := parseConfig()
+			cfg, err := parseConfig()
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			if cfg.Addr != tt.want.Addr {
 				t.Errorf("Addr = %q, want %q", cfg.Addr, tt.want.Addr)

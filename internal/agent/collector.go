@@ -1,8 +1,12 @@
 package agent
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"runtime"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 // GaugeMetric — метрика типа gauge (float64).
@@ -54,4 +58,25 @@ func CollectGauges() []GaugeMetric {
 	}
 
 	return gauges
+}
+
+func CollectPSUtilMetrics() []GaugeMetric {
+	var metrics []GaugeMetric
+
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		metrics = append(metrics,
+			GaugeMetric{Name: "TotalMemory", Value: float64(v.Total)},
+			GaugeMetric{Name: "FreeMemory", Value: float64(v.Free)},
+		)
+	}
+	cpuPercent, err := cpu.Percent(0, true)
+	if err == nil {
+		for i, pct := range cpuPercent {
+			name := fmt.Sprintf("CPUutilization%d", i+1)
+			metrics = append(metrics, GaugeMetric{Name: name, Value: pct})
+		}
+	}
+
+	return metrics
 }

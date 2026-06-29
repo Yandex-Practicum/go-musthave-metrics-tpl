@@ -8,29 +8,41 @@ import (
 )
 
 func main() {
-	cfg := parseConfig()
+	cfg, err := parseConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("ошибка конфигурации")
+	}
 
 	baseURL := "http://" + cfg.Addr
-	sender := agent.NewSender(baseURL)
+	sender := agent.NewSender(baseURL, cfg.HashKey)
+	store := agent.NewMetricsStore()
 
-	var lastGauges []agent.GaugeMetric
-	var pollsSinceReport int64
+	go func() {
+		ticker := time.NewTicker(cfg.PollInterval)
+		for range ticker.C {
+			store.UpdateGauges(agent.CollectGauges())
+		}
+	}()
 
-	pollTicker := time.NewTicker(cfg.PollInterval)
+	go func() {
+		ticker := time.NewTicker(cfg.PollInterval)
+		for range ticker.C {
+			store.UpdatePSMetrics(agent.CollectPSUtilMetrics())
+		}
+	}()
+
+	sem := make(chan struct{}, cfg.RateLimit)
 	reportTicker := time.NewTicker(cfg.ReportInterval)
 
-	for {
-		select {
-		case <-pollTicker.C:
-			lastGauges = agent.CollectGauges()
-			pollsSinceReport++
-		case <-reportTicker.C:
-			if err := sender.SendBatch(lastGauges, pollsSinceReport); err != nil {
+	for range reportTicker.C {
+		all, ps := store.GetAll()
+
+		sem <- struct{}{}
+		go func(metrics []agent.GaugeMetric, count int64) {
+			defer func() { <-sem }()
+			if err := sender.SendBatch(metrics, count); err != nil {
 				log.Error().Err(err).Msg("отправка метрик")
-				continue
 			}
-			log.Info().Int64("polls", pollsSinceReport).Msg("метрики отправлены")
-			pollsSinceReport = 0
-		}
+		}(all, ps)
 	}
 }

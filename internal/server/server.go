@@ -18,17 +18,19 @@ import (
 )
 
 type Server struct {
-	addr   string
-	repo   storage.Repository
-	db     *sql.DB
-	server *http.Server
+	addr    string
+	repo    storage.Repository
+	db      *sql.DB
+	hashKey string
+	server  *http.Server
 }
 
-func New(addr string, repo storage.Repository, db *sql.DB) *Server {
+func New(addr string, repo storage.Repository, db *sql.DB, hashKey string) *Server {
 	return &Server{
-		addr: addr,
-		repo: repo,
-		db:   db,
+		addr:    addr,
+		repo:    repo,
+		db:      db,
+		hashKey: hashKey,
 	}
 }
 
@@ -45,6 +47,9 @@ func (s *Server) Run() error {
 	r.Get("/", handlers.ListHandler(svc))
 	r.Get("/ping", handlers.PingHandler(s.db))
 	r.Post("/updates/", handlers.UpdatesJSONHandler(svc))
+	if s.hashKey != "" {
+		r.Use(middleware.HashCheckMiddleware(s.hashKey))
+	}
 
 	srv := &http.Server{
 		Addr:         s.addr,
