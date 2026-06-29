@@ -15,6 +15,7 @@ import (
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
 	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog/log"
 )
 
@@ -43,6 +44,9 @@ func (s *Server) Run() error {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
+	// Эндпоинты pprof для профилирования под нагрузкой:
+	// go tool pprof http://<addr>/debug/pprof/heap
+	r.Mount("/debug", chimw.Profiler())
 	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(svc, s.auditPub))
 	r.Post("/update/", handlers.UpdateJSONHandler(svc, s.auditPub))
 	r.Get("/value/{type}/{name}", handlers.ValueHandler(svc))

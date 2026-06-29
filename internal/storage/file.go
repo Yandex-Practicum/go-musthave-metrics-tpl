@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"os"
@@ -11,24 +12,19 @@ import (
 )
 
 func SaveToFile(s *MemoryStorage, filename string) error {
-	var metrics []models.Metrics
-
-	for name, value := range s.GetAllGauges(context.Background()) {
-		v := value
-		metrics = append(metrics, models.Metrics{ID: name, MType: "gauge", Value: &v})
-	}
-
-	for name, value := range s.GetAllCounters(context.Background()) {
-		d := value
-		metrics = append(metrics, models.Metrics{ID: name, MType: "counter", Delta: &d})
-	}
+	metrics := s.snapshot()
 
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	return json.NewEncoder(file).Encode(metrics)
+
+	bw := bufio.NewWriter(file)
+	if err := json.NewEncoder(bw).Encode(metrics); err != nil {
+		return err
+	}
+	return bw.Flush()
 }
 
 func LoadFromFile(s *MemoryStorage, filename string) error {

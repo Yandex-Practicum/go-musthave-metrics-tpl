@@ -80,17 +80,43 @@ func (s *MemoryStorage) GetAllCounters(ctx context.Context) map[string]int64 {
 }
 
 func (s *MemoryStorage) UpdateBatch(ctx context.Context, metrics []models.Metrics) error {
+	s.mu.Lock()
 	for _, m := range metrics {
 		switch m.MType {
 		case "gauge":
 			if m.Value != nil {
-				s.UpdateGauge(ctx, m.ID, *m.Value)
+				s.gauges[m.ID] = *m.Value
 			}
 		case "counter":
 			if m.Delta != nil {
-				s.UpdateCounter(ctx, m.ID, *m.Delta)
+				s.counters[m.ID] += *m.Delta
 			}
 		}
 	}
+	s.mu.Unlock()
+	if s.syncFile != "" {
+		return SaveToFile(s, s.syncFile)
+	}
 	return nil
+}
+
+// snapshot собирает все метрики в один срез под одной блокировкой чтения.
+// Точная ёмкость backing-массивов исключает реаллокацию, поэтому взятие
+// адресов их элементов безопасно.
+func (s *MemoryStorage) snapshot() []models.Metrics {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	metrics := make([]models.Metrics, 0, len(s.gauges)+len(s.counters))
+	gv := make([]float64, 0, len(s.gauges))
+	for name, value := range s.gauges {
+		gv = append(gv, value)
+		metrics = append(metrics, models.Metrics{ID: name, MType: "gauge", Value: &gv[len(gv)-1]})
+	}
+	cv := make([]int64, 0, len(s.counters))
+	for name, value := range s.counters {
+		cv = append(cv, value)
+		metrics = append(metrics, models.Metrics{ID: name, MType: "counter", Delta: &cv[len(cv)-1]})
+	}
+	return metrics
 }

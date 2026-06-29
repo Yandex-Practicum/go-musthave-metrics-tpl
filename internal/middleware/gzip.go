@@ -5,7 +5,17 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 )
+
+// gzipWriterPool переиспользует gzip.Writer между запросами: их создание
+// (compress/flate.NewWriter) — самый дорогой источник аллокаций под нагрузкой.
+var gzipWriterPool = sync.Pool{
+	New: func() any {
+		gz, _ := gzip.NewWriterLevel(io.Discard, gzip.BestSpeed)
+		return gz
+	},
+}
 
 type gzipWriter struct {
 	http.ResponseWriter
@@ -35,12 +45,12 @@ func GzipMiddleware(next http.Handler) http.Handler {
 			contentType == ""
 
 		if supportsGzip && compressible {
-			gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-			defer gz.Close()
+			gz := gzipWriterPool.Get().(*gzip.Writer)
+			gz.Reset(w)
+			defer func() {
+				gz.Close()
+				gzipWriterPool.Put(gz)
+			}()
 			w.Header().Set("Content-Encoding", "gzip")
 			next.ServeHTTP(gzipWriter{ResponseWriter: w, writer: gz}, r)
 			return
