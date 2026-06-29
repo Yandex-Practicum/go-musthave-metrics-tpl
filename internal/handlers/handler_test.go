@@ -16,9 +16,9 @@ import (
 
 func newTestRouter(repo storage.Repository) http.Handler {
 	r := chi.NewRouter()
-	r.Post("/update/{type}/{name}/{value}", MetricsHandler(repo))
-	r.Post("/update/", UpdateJSONHandler(repo))
-	r.Post("/updates/", UpdatesJSONHandler(repo))
+	r.Post("/update/{type}/{name}/{value}", MetricsHandler(repo, nil))
+	r.Post("/update/", UpdateJSONHandler(repo, nil))
+	r.Post("/updates/", UpdatesJSONHandler(repo, nil))
 	r.Get("/value/{type}/{name}", ValueHandler(repo))
 	r.Post("/value/", ValueJSONHandler(repo))
 	r.Get("/", ListHandler(repo))

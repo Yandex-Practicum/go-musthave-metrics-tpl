@@ -15,6 +15,8 @@ type serverConfig struct {
 	Restore       bool
 	DatabaseDSN   string
 	HashKey       string
+	AuditFile     string
+	AuditURL      string
 }
 
 func parseConfig() (serverConfig, error) {
@@ -25,6 +27,8 @@ func parseConfig() (serverConfig, error) {
 	restore := flag.Bool("r", true, "загружать при старте")
 	databaseDSN := flag.String("d", "", "строка подключения к PostgreSQL")
 	hashKey := flag.String("k", "", "ключ для подписи SHA256")
+	auditFile := flag.String("audit-file", "", "путь к файлу логов аудита (пусто — аудит в файл отключён)")
+	auditURL := flag.String("audit-url", "", "URL приёмника логов аудита (пусто — аудит по сети отключён)")
 	flag.Parse()
 
 	if v, ok := os.LookupEnv("ADDRESS"); ok {
@@ -53,6 +57,12 @@ func parseConfig() (serverConfig, error) {
 	if v, ok := os.LookupEnv("KEY"); ok {
 		*hashKey = v
 	}
+	if v, ok := os.LookupEnv("AUDIT_FILE"); ok {
+		*auditFile = v
+	}
+	if v, ok := os.LookupEnv("AUDIT_URL"); ok {
+		*auditURL = v
+	}
 
 	return serverConfig{
 		Addr:          *addr,
@@ -62,5 +72,7 @@ func parseConfig() (serverConfig, error) {
 		Restore:       *restore,
 		DatabaseDSN:   *databaseDSN,
 		HashKey:       *hashKey,
+		AuditFile:     *auditFile,
+		AuditURL:      *auditURL,
 	}, nil
 }

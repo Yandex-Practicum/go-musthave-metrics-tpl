@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/audit"
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
 	"github.com/rs/zerolog/log"
 )
 
-func UpdateJSONHandler(srv service.MetricsService) http.HandlerFunc {
+func UpdateJSONHandler(srv service.MetricsService, auditPub *audit.Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
@@ -42,6 +43,8 @@ func UpdateJSONHandler(srv service.MetricsService) http.HandlerFunc {
 			http.Error(w, "unknown metric type", http.StatusBadRequest)
 			return
 		}
+
+		publishAudit(auditPub, r, []string{m.ID})
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

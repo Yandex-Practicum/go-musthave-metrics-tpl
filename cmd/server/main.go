@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/audit"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/logger"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/server"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
@@ -50,7 +51,19 @@ func main() {
 		repo = memRepo
 	}
 
-	srv := server.New(cfg.Addr, repo, db, cfg.HashKey)
+	// Аудит запросов (паттерн «Наблюдатель»): приёмники подключаются,
+	// только если задан соответствующий параметр конфигурации.
+	auditPub := audit.NewPublisher()
+	if cfg.AuditFile != "" {
+		auditPub.Subscribe(audit.NewFileSink(cfg.AuditFile))
+		log.Info().Str("file", cfg.AuditFile).Msg("аудит в файл включён")
+	}
+	if cfg.AuditURL != "" {
+		auditPub.Subscribe(audit.NewHTTPSink(cfg.AuditURL))
+		log.Info().Str("url", cfg.AuditURL).Msg("аудит по сети включён")
+	}
+
+	srv := server.New(cfg.Addr, repo, db, cfg.HashKey, auditPub)
 	if err := srv.Run(); err != nil {
 		log.Fatal().Err(err).Msg("ошибка запуска сервера")
 	}

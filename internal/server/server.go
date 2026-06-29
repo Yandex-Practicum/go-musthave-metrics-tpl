@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/audit"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/logger"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/middleware"
@@ -18,19 +19,21 @@ import (
 )
 
 type Server struct {
-	addr    string
-	repo    storage.Repository
-	db      *sql.DB
-	hashKey string
-	server  *http.Server
+	addr     string
+	repo     storage.Repository
+	db       *sql.DB
+	hashKey  string
+	auditPub *audit.Publisher
+	server   *http.Server
 }
 
-func New(addr string, repo storage.Repository, db *sql.DB, hashKey string) *Server {
+func New(addr string, repo storage.Repository, db *sql.DB, hashKey string, auditPub *audit.Publisher) *Server {
 	return &Server{
-		addr:    addr,
-		repo:    repo,
-		db:      db,
-		hashKey: hashKey,
+		addr:     addr,
+		repo:     repo,
+		db:       db,
+		hashKey:  hashKey,
+		auditPub: auditPub,
 	}
 }
 
@@ -40,13 +43,13 @@ func (s *Server) Run() error {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
-	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(svc))
-	r.Post("/update/", handlers.UpdateJSONHandler(svc))
+	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(svc, s.auditPub))
+	r.Post("/update/", handlers.UpdateJSONHandler(svc, s.auditPub))
 	r.Get("/value/{type}/{name}", handlers.ValueHandler(svc))
 	r.Post("/value/", handlers.ValueJSONHandler(svc))
 	r.Get("/", handlers.ListHandler(svc))
 	r.Get("/ping", handlers.PingHandler(s.db))
-	r.Post("/updates/", handlers.UpdatesJSONHandler(svc))
+	r.Post("/updates/", handlers.UpdatesJSONHandler(svc, s.auditPub))
 	if s.hashKey != "" {
 		r.Use(middleware.HashCheckMiddleware(s.hashKey))
 	}

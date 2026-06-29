@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/audit"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
@@ -16,7 +17,7 @@ const (
 	typeCounter metricType = "counter"
 )
 
-func MetricsHandler(srv service.MetricsService) http.HandlerFunc {
+func MetricsHandler(srv service.MetricsService, auditPub *audit.Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		mType := chi.URLParam(r, "type")
@@ -54,6 +55,7 @@ func MetricsHandler(srv service.MetricsService) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		publishAudit(auditPub, r, []string{name})
 		w.WriteHeader(http.StatusOK)
 	}
 }
