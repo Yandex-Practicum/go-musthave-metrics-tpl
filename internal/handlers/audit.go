@@ -10,18 +10,18 @@ import (
 )
 
 // publishAudit формирует событие аудита по обработанным метрикам и
-// асинхронно рассылает его всем приёмникам. Если аудит отключён
-// (нет приёмников) или метрики не получены — ничего не делает.
+// ставит его в очередь приёмников. Асинхронность и ограничение
+// параллельных отправок обеспечивает Publisher.Notify через worker pool,
+// поэтому здесь не нужно запускать новую горутину на каждый запрос.
 func publishAudit(pub *audit.Publisher, r *http.Request, metrics []string) {
 	if !pub.Enabled() || len(metrics) == 0 {
 		return
 	}
-	event := audit.Event{
+	pub.Notify(audit.Event{
 		Ts:        time.Now().Unix(),
 		Metrics:   metrics,
 		IPAddress: clientIP(r),
-	}
-	go pub.Notify(event)
+	})
 }
 
 // clientIP определяет IP входящего запроса: сначала по заголовкам

@@ -15,10 +15,13 @@ import (
 
 func TestFileSink_Notify(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "audit.log")
-	sink := NewFileSink(path)
+	sink, err := NewFileSink(path)
+	require.NoError(t, err)
+	defer sink.Close()
 
 	require.NoError(t, sink.Notify(Event{Ts: 100, Metrics: []string{"Alloc"}, IPAddress: "1.2.3.4"}))
 	require.NoError(t, sink.Notify(Event{Ts: 200, Metrics: []string{"Frees"}, IPAddress: "5.6.7.8"}))
+	require.NoError(t, sink.Close())
 
 	f, err := os.Open(path)
 	require.NoError(t, err)
@@ -60,15 +63,21 @@ func TestPublisher_Enabled(t *testing.T) {
 	pub := NewPublisher()
 	assert.False(t, pub.Enabled(), "без приёмников аудит отключён")
 
-	pub.Subscribe(NewFileSink("x"))
+	fs, err := NewFileSink(filepath.Join(t.TempDir(), "x.log"))
+	require.NoError(t, err)
+	defer fs.Close()
+	pub.Subscribe(fs)
 	assert.True(t, pub.Enabled(), "после подписки аудит включён")
 }
 
 func TestPublisher_NotifyAllObservers(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "audit.log")
-	pub := NewPublisher(NewFileSink(path))
+	fs, err := NewFileSink(path)
+	require.NoError(t, err)
+	pub := NewPublisher(fs)
 
 	pub.Notify(Event{Ts: 1, Metrics: []string{"Alloc"}, IPAddress: "1.1.1.1"})
+	require.NoError(t, pub.Close())
 
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)

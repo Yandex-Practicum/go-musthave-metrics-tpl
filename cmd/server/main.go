@@ -55,15 +55,24 @@ func main() {
 	// только если задан соответствующий параметр конфигурации.
 	auditPub := audit.NewPublisher()
 	if cfg.AuditFile != "" {
-		auditPub.Subscribe(audit.NewFileSink(cfg.AuditFile))
+		fs, err := audit.NewFileSink(cfg.AuditFile)
+		if err != nil {
+			log.Fatal().Err(err).Msg("ошибка открытия файла аудита")
+		}
+		auditPub.Subscribe(fs)
 		log.Info().Str("file", cfg.AuditFile).Msg("аудит в файл включён")
 	}
 	if cfg.AuditURL != "" {
 		auditPub.Subscribe(audit.NewHTTPSink(cfg.AuditURL))
 		log.Info().Str("url", cfg.AuditURL).Msg("аудит по сети включён")
 	}
+	defer func() {
+		if err := auditPub.Close(); err != nil {
+			log.Error().Err(err).Msg("ошибка закрытия приёмников аудита")
+		}
+	}()
 
-	srv := server.New(cfg.Addr, repo, db, cfg.HashKey, auditPub)
+	srv := server.New(cfg.Addr, repo, db, cfg.HashKey, auditPub, cfg.EnablePprof)
 	if err := srv.Run(); err != nil {
 		log.Fatal().Err(err).Msg("ошибка запуска сервера")
 	}

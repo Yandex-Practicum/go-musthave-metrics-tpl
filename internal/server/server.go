@@ -1,3 +1,6 @@
+// Package server собирает HTTP-сервер сбора метрик: настраивает роутер chi,
+// подключает middleware (логирование, gzip, проверку подписи), регистрирует
+// эндпоинты практического трека и обеспечивает graceful shutdown.
 package server
 
 import (
@@ -19,34 +22,49 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Server — HTTP-сервер сбора метрик с зависимостями: адрес прослушивания,
+// хранилище метрик, соединение с БД, ключ подписи, издатель аудита и флаг
+// включения эндпоинтов профилирования pprof.
 type Server struct {
-	addr     string
-	repo     storage.Repository
-	db       *sql.DB
-	hashKey  string
-	auditPub *audit.Publisher
-	server   *http.Server
+	addr        string
+	repo        storage.Repository
+	db          *sql.DB
+	hashKey     string
+	auditPub    *audit.Publisher
+	enablePprof bool
+	server      *http.Server
 }
 
-func New(addr string, repo storage.Repository, db *sql.DB, hashKey string, auditPub *audit.Publisher) *Server {
+// New создаёт сервер с заданным адресом, хранилищем, соединением с БД,
+// ключом HMAC-подписи (пустой — подпись отключена), издателем аудита и
+// флагом enablePprof (регистрация /debug/pprof включается только когда true).
+func New(addr string, repo storage.Repository, db *sql.DB, hashKey string, auditPub *audit.Publisher, enablePprof bool) *Server {
 	return &Server{
-		addr:     addr,
-		repo:     repo,
-		db:       db,
-		hashKey:  hashKey,
-		auditPub: auditPub,
+		addr:        addr,
+		repo:        repo,
+		db:          db,
+		hashKey:     hashKey,
+		auditPub:    auditPub,
+		enablePprof: enablePprof,
 	}
 }
 
+// Run настраивает роутер и запускает HTTP-сервер, блокируясь до получения
+// сигнала прерывания (os.Interrupt), после чего выполняет graceful shutdown.
 func (s *Server) Run() error {
 	svc := service.NewMetricsService(s.repo)
 
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
-	// Эндпоинты pprof для профилирования под нагрузкой:
+	// Эндпоинты pprof регистрируются только при явном включении:
+	// они раскрывают внутренности процесса (стеки, heap) и не должны быть
+	// доступны в production без ограничений. Включай в dev/staging при
+	// профилировании (флаг --pprof / env PPROF).
 	// go tool pprof http://<addr>/debug/pprof/heap
-	r.Mount("/debug", chimw.Profiler())
+	if s.enablePprof {
+		r.Mount("/debug", chimw.Profiler())
+	}
 	r.Post("/update/{type}/{name}/{value}", handlers.MetricsHandler(svc, s.auditPub))
 	r.Post("/update/", handlers.UpdateJSONHandler(svc, s.auditPub))
 	r.Get("/value/{type}/{name}", handlers.ValueHandler(svc))

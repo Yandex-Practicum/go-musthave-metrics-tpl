@@ -20,8 +20,7 @@ func BenchmarkListHandler(b *testing.B) {
 	h := ListHandler(repo)
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
