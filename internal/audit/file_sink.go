@@ -37,8 +37,8 @@ func (s *FileSink) Notify(event Event) error {
 	buf := append(data, '\n')
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	_, err = s.file.Write(buf)
-	s.mu.Unlock()
 	return err
 }
 
