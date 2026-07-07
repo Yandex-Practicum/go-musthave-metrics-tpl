@@ -32,7 +32,6 @@ type Server struct {
 	hashKey     string
 	auditPub    *audit.Publisher
 	enablePprof bool
-	server      *http.Server
 }
 
 // New создаёт сервер с заданным адресом, хранилищем, соединением с БД,
@@ -49,9 +48,10 @@ func New(addr string, repo storage.Repository, db *sql.DB, hashKey string, audit
 	}
 }
 
-// Run настраивает роутер и запускает HTTP-сервер, блокируясь до получения
-// сигнала прерывания (os.Interrupt), после чего выполняет graceful shutdown.
-func (s *Server) Run() error {
+// buildRouter собирает chi-роутер со всеми middleware и эндпоинтами сервера.
+// Вынесен из Run отдельно, чтобы маршрутизацию можно было покрыть тестами
+// без запуска блокирующего ListenAndServe.
+func (s *Server) buildRouter() http.Handler {
 	svc := service.NewMetricsService(s.repo)
 
 	r := chi.NewRouter()
@@ -75,6 +75,13 @@ func (s *Server) Run() error {
 	if s.hashKey != "" {
 		r.Use(middleware.HashCheckMiddleware(s.hashKey))
 	}
+	return r
+}
+
+// Run настраивает роутер и запускает HTTP-сервер, блокируясь до получения
+// сигнала прерывания (os.Interrupt), после чего выполняет graceful shutdown.
+func (s *Server) Run() error {
+	r := s.buildRouter()
 
 	srv := &http.Server{
 		Addr:         s.addr,

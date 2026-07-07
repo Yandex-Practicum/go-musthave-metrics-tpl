@@ -18,7 +18,7 @@ func publishAudit(pub *audit.Publisher, r *http.Request, metrics []string) {
 		return
 	}
 	pub.Notify(audit.Event{
-		Ts:        time.Now().Unix(),
+		TS:        time.Now().Unix(),
 		Metrics:   metrics,
 		IPAddress: clientIP(r),
 	})
