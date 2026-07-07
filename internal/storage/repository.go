@@ -1,3 +1,5 @@
+// Package storage содержит реализации хранилищ метрик: в памяти,
+// в файле и в PostgreSQL.
 package storage
 
 import (

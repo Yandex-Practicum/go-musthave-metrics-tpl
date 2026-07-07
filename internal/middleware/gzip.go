@@ -1,3 +1,5 @@
+// Package middleware содержит HTTP-middleware: сжатие gzip и проверку
+// подписи запросов.
 package middleware
 
 import (

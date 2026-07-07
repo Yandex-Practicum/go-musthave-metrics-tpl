@@ -1,3 +1,5 @@
+// Package service реализует бизнес-логику работы с метриками поверх
+// хранилища.
 package service
 
 import (

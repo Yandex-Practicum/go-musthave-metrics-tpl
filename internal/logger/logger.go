@@ -1,3 +1,5 @@
+// Package logger предоставляет инициализацию глобального логгера и
+// middleware для структурированного логирования HTTP-запросов.
 package logger
 
 import (

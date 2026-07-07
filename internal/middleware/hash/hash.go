@@ -1,3 +1,4 @@
+// Package hash вычисляет и проверяет HMAC-подпись данных.
 package hash
 
 import (

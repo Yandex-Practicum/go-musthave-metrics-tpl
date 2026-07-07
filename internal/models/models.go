@@ -1,3 +1,4 @@
+// Package models содержит вспомогательные модели данных проекта.
 package models
 
 const (
