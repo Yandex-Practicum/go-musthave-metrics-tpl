@@ -1,13 +1,25 @@
 package main
 
 import (
+	"os"
 	"time"
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/agent"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/buildinfo"
 	"github.com/rs/zerolog/log"
 )
 
+// Сведения о сборке. Задаются при компиляции через
+// -ldflags "-X main.buildVersion=... -X main.buildDate=... -X main.buildCommit=...".
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	buildinfo.Print(os.Stdout, buildVersion, buildDate, buildCommit)
+
 	cfg, err := parseConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msg("ошибка конфигурации")
