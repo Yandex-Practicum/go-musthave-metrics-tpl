@@ -32,8 +32,18 @@ func TestPool_GetUsesFactory(t *testing.T) {
 	}
 }
 
+// TestPool_NilFactory проверяет, что при nil-конструкторе пул выдаёт
+// нулевое значение типа (для *buffer это nil), а не паникует.
+func TestPool_NilFactory(t *testing.T) {
+	p := New[*buffer](nil)
+
+	if got := p.Get(); got != nil {
+		t.Fatalf("Get при nil-конструкторе вернул %v, ожидался nil", got)
+	}
+}
+
 // TestPool_PutResets проверяет, что Put сбрасывает состояние объекта перед
-// возвратом в пул и что объект переиспользуется.
+// возвратом в пул.
 func TestPool_PutResets(t *testing.T) {
 	p := New(func() *buffer { return &buffer{} })
 
@@ -45,12 +55,5 @@ func TestPool_PutResets(t *testing.T) {
 
 	if len(b.data) != 0 || b.uses != 0 {
 		t.Fatalf("Put не сбросил состояние: data=%v uses=%d", b.data, b.uses)
-	}
-
-	// Тот же объект должен вернуться из пула (sync.Pool не гарантирует это
-	// строго, но сразу после Put в отсутствие GC — да).
-	got := p.Get()
-	if got != b {
-		t.Fatalf("ожидалось переиспользование того же объекта")
 	}
 }

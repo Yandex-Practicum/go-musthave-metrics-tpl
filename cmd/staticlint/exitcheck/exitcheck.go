@@ -15,6 +15,7 @@ package exitcheck
 
 import (
 	"go/ast"
+	"go/types"
 	"path/filepath"
 
 	"golang.org/x/tools/go/analysis"
@@ -66,7 +67,7 @@ func checkMainBody(pass *analysis.Pass, fn *ast.FuncDecl) {
 		if !ok {
 			return true
 		}
-		if isOsExitCall(call) {
+		if isOsExitCall(pass, call) {
 			pass.Reportf(call.Pos(), "прямой вызов os.Exit в функции main запрещён")
 		}
 		return true
@@ -85,9 +86,13 @@ func isGenerated(pass *analysis.Pass, file *ast.File) bool {
 	return filepath.Base(name) == "_testmain.go"
 }
 
-// isOsExitCall сообщает, является ли выражение вызовом os.Exit,
-// записанным как селектор пакета os.
-func isOsExitCall(call *ast.CallExpr) bool {
+// isOsExitCall сообщает, является ли выражение вызовом os.Exit. Пакет
+// определяется не по имени идентификатора, а по информации о типах
+// (pass.TypesInfo.Uses): для селектора os.Exit левый идентификатор
+// разрешается в объект *types.PkgName, и проверяется путь импортированного
+// пакета. Благодаря этому вызов распознаётся даже при импорте os под
+// псевдонимом, например import myos "os".
+func isOsExitCall(pass *analysis.Pass, call *ast.CallExpr) bool {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return false
@@ -99,5 +104,9 @@ func isOsExitCall(call *ast.CallExpr) bool {
 	if !ok {
 		return false
 	}
-	return ident.Name == "os"
+	pkgName, ok := pass.TypesInfo.Uses[ident].(*types.PkgName)
+	if !ok {
+		return false
+	}
+	return pkgName.Imported().Path() == "os"
 }

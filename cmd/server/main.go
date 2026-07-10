@@ -13,12 +13,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Сведения о сборке. Задаются при компиляции через
-// -ldflags "-X main.buildVersion=... -X main.buildDate=... -X main.buildCommit=...".
+// Сведения о сборке. Значения по умолчанию можно перезаписать при компиляции
+// через -ldflags "-X main.buildVersion=... -X main.buildDate=... -X main.buildCommit=...".
+// Подробнее — в README проекта.
 var (
-	buildVersion string
-	buildDate    string
-	buildCommit  string
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
 )
 
 func main() {

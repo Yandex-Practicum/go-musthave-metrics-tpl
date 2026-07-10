@@ -11,5 +11,5 @@ import (
 // TestExitCheck прогоняет анализатор на тестовых пакетах из testdata и
 // сверяет диагностику с комментариями // want.
 func TestExitCheck(t *testing.T) {
-	analysistest.Run(t, analysistest.TestData(), exitcheck.Analyzer, "mainpkg", "otherpkg")
+	analysistest.Run(t, analysistest.TestData(), exitcheck.Analyzer, "mainpkg", "otherpkg", "aliaspkg")
 }

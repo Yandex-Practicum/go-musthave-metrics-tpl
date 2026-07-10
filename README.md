@@ -43,6 +43,29 @@ git fetch template && git checkout template/v2 .github
 - **Hexagonal Architecture**
 - **Layered Architecture**
 
+## Сборка с информацией о версии
+
+Бинарники `server` и `agent` выводят при старте в stdout сведения о сборке:
+
+```
+Build version: <buildVersion>
+Build date: <buildDate>
+Build commit: <buildCommit>
+```
+
+Значения задаются глобальными переменными `buildVersion`, `buildDate` и
+`buildCommit` в пакете `main` каждой команды. Если значение не задано при
+компиляции, выводится `N/A`.
+
+Переменные заполняются во время сборки через `-ldflags "-X ..."`:
+
+```
+go build -ldflags "-X main.buildVersion=v1.0.0 -X 'main.buildDate=$(date +%Y-%m-%d)' -X main.buildCommit=$(git rev-parse --short HEAD)" -o server ./cmd/server
+go build -ldflags "-X main.buildVersion=v1.0.0 -X 'main.buildDate=$(date +%Y-%m-%d)' -X main.buildCommit=$(git rev-parse --short HEAD)" -o agent ./cmd/agent
+```
+
+Без флагов бинарник тоже собирается — при запуске все три поля покажут `N/A`.
+
 ## Профилирование и оптимизация памяти
 
 Профилирование проводится на **работающем сервере под реалистичной нагрузкой**,

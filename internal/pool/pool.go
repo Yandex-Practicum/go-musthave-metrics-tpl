@@ -20,9 +20,16 @@ type Pool[T Resetable] struct {
 	pool sync.Pool
 }
 
-// New создаёт и возвращает пул. Функция newFn используется для создания
-// новых объектов, когда пул пуст.
+// New создаёт и возвращает пул. Аргумент newFn опционален: если он не nil,
+// пул создаёт новые объекты вызовом newFn, когда пуст; если newFn равен
+// nil, пул возвращает нулевое значение типа T.
 func New[T Resetable](newFn func() T) *Pool[T] {
+	if newFn == nil {
+		newFn = func() T {
+			var zero T
+			return zero
+		}
+	}
 	return &Pool[T]{
 		pool: sync.Pool{
 			New: func() any { return newFn() },
@@ -30,8 +37,9 @@ func New[T Resetable](newFn func() T) *Pool[T] {
 	}
 }
 
-// Get возвращает объект из пула. Если пул пуст, создаётся новый объект с
-// помощью функции, переданной в New.
+// Get возвращает объект из пула. Если пул пуст, создаётся новый объект: с
+// помощью функции, переданной в New, либо нулевое значение типа T, если
+// функция не задавалась.
 func (p *Pool[T]) Get() T {
 	return p.pool.Get().(T)
 }

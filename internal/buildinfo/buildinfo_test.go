@@ -5,13 +5,12 @@ import (
 	"testing"
 )
 
-// TestPrint проверяет вывод как при заданных значениях, так и с подстановкой
-// "N/A" для пустых.
+// TestPrint проверяет, что Print выводит переданные значения без изменений.
 func TestPrint(t *testing.T) {
 	tests := []struct {
-		name                    string
-		version, date, commit   string
-		want                    string
+		name                  string
+		version, date, commit string
+		want                  string
 	}{
 		{
 			name:    "все значения заданы",
@@ -19,7 +18,8 @@ func TestPrint(t *testing.T) {
 			want: "Build version: v1.0.0\nBuild date: 2026-07-08\nBuild commit: abc123\n",
 		},
 		{
-			name: "все значения пусты",
+			name:    "значения по умолчанию",
+			version: "N/A", date: "N/A", commit: "N/A",
 			want: "Build version: N/A\nBuild date: N/A\nBuild commit: N/A\n",
 		},
 	}
