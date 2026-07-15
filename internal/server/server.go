@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"crypto/rsa"
 	"database/sql"
 	"net/http"
 	"os"
@@ -32,12 +33,14 @@ type Server struct {
 	hashKey     string
 	auditPub    *audit.Publisher
 	enablePprof bool
+	privateKey  *rsa.PrivateKey
 }
 
 // New создаёт сервер с заданным адресом, хранилищем, соединением с БД,
-// ключом HMAC-подписи (пустой — подпись отключена), издателем аудита и
-// флагом enablePprof (регистрация /debug/pprof включается только когда true).
-func New(addr string, repo storage.Repository, db *sql.DB, hashKey string, auditPub *audit.Publisher, enablePprof bool) *Server {
+// ключом HMAC-подписи (пустой — подпись отключена), издателем аудита,
+// флагом enablePprof и приватным RSA-ключом для расшифровки трафика
+// (nil — расшифровка отключена).
+func New(addr string, repo storage.Repository, db *sql.DB, hashKey string, auditPub *audit.Publisher, enablePprof bool, privateKey *rsa.PrivateKey) *Server {
 	return &Server{
 		addr:        addr,
 		repo:        repo,
@@ -45,6 +48,7 @@ func New(addr string, repo storage.Repository, db *sql.DB, hashKey string, audit
 		hashKey:     hashKey,
 		auditPub:    auditPub,
 		enablePprof: enablePprof,
+		privateKey:  privateKey,
 	}
 }
 
@@ -57,6 +61,12 @@ func (s *Server) buildRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
+	// Расшифровка выполняется сразу после распаковки gzip: агент шифрует
+	// исходные данные, затем сжимает их; сервер идёт в обратном порядке.
+	// Middleware ничего не делает, если privateKey == nil.
+	if s.privateKey != nil {
+		r.Use(middleware.DecryptMiddleware(s.privateKey))
+	}
 	// Эндпоинты pprof регистрируются только при явном включении:
 	// они раскрывают внутренности процесса (стеки, heap) и не должны быть
 	// доступны в production без ограничений. Включай в dev/staging при

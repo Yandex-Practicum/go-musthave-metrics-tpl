@@ -15,7 +15,7 @@ func TestNew(t *testing.T) {
 	pub := audit.NewPublisher()
 	defer pub.Close()
 
-	s := New(":8080", repo, nil, "secret", pub, true)
+	s := New(":8080", repo, nil, "secret", pub, true, nil)
 	if s.addr != ":8080" || s.hashKey != "secret" || !s.enablePprof {
 		t.Fatalf("New сохранил зависимости некорректно: %+v", s)
 	}
@@ -31,7 +31,7 @@ func TestBuildRouter(t *testing.T) {
 	pub := audit.NewPublisher()
 	defer pub.Close()
 
-	s := New(":0", repo, nil, "", pub, true)
+	s := New(":0", repo, nil, "", pub, true, nil)
 	ts := httptest.NewServer(s.buildRouter())
 	defer ts.Close()
 

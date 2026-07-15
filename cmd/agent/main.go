@@ -1,11 +1,13 @@
 package main
 
 import (
+	"crypto/rsa"
 	"os"
 	"time"
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/agent"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/buildinfo"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/crypto"
 	"github.com/rs/zerolog/log"
 )
 
@@ -27,7 +29,17 @@ func main() {
 	}
 
 	baseURL := "http://" + cfg.Addr
-	sender := agent.NewSender(baseURL, cfg.HashKey)
+
+	var publicKey *rsa.PublicKey
+	if cfg.CryptoKey != "" {
+		publicKey, err = crypto.LoadPublicKey(cfg.CryptoKey)
+		if err != nil {
+			log.Fatal().Err(err).Msg("ошибка загрузки публичного ключа")
+		}
+		log.Info().Str("path", cfg.CryptoKey).Msg("шифрование трафика включено")
+	}
+
+	sender := agent.NewSender(baseURL, cfg.HashKey, publicKey)
 	store := agent.NewMetricsStore()
 
 	go func() {

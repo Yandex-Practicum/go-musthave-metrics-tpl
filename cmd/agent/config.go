@@ -14,6 +14,7 @@ type agentConfig struct {
 	ReportInterval time.Duration
 	HashKey        string
 	RateLimit      int
+	CryptoKey      string
 }
 
 func parseConfig() (agentConfig, error) {
@@ -22,6 +23,7 @@ func parseConfig() (agentConfig, error) {
 	reportInterval := flag.Int("r", 10, "интервал отправки метрик на сервер (сек)")
 	hashKey := flag.String("k", "", "ключ для подписи SHA256")
 	rateLimit := flag.Int("l", 1, "количество одновременных запросов")
+	cryptoKey := flag.String("crypto-key", "", "путь до файла с публичным RSA-ключом (пусто — шифрование отключено)")
 
 	flag.Parse()
 
@@ -57,11 +59,16 @@ func parseConfig() (agentConfig, error) {
 		*hashKey = v
 	}
 
+	if v, ok := os.LookupEnv("CRYPTO_KEY"); ok {
+		*cryptoKey = v
+	}
+
 	return agentConfig{
 		Addr:           *addr,
 		PollInterval:   time.Duration(*pollInterval) * time.Second,
 		ReportInterval: time.Duration(*reportInterval) * time.Second,
 		HashKey:        *hashKey,
 		RateLimit:      *rateLimit,
+		CryptoKey:      *cryptoKey,
 	}, nil
 }

@@ -3,11 +3,13 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/crypto"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/middleware/hash"
 	models "github.com/bluegopher/go-musthave-metrics-tpl/internal/model"
 	"github.com/hashicorp/go-retryablehttp"
@@ -16,22 +18,37 @@ import (
 const pollCountName = "PollCount"
 
 type Sender struct {
-	baseURL string
-	client  *http.Client
-	hashKey string
+	baseURL   string
+	client    *http.Client
+	hashKey   string
+	publicKey *rsa.PublicKey
 }
 
-func NewSender(baseURL string, hashKey string) *Sender {
+func NewSender(baseURL string, hashKey string, publicKey *rsa.PublicKey) *Sender {
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = 3
 	retryClient.RetryWaitMin = 1 * time.Second
 	retryClient.RetryWaitMax = 5 * time.Second
 
 	return &Sender{
-		baseURL: baseURL,
-		client:  retryClient.StandardClient(),
-		hashKey: hashKey,
+		baseURL:   baseURL,
+		client:    retryClient.StandardClient(),
+		hashKey:   hashKey,
+		publicKey: publicKey,
 	}
+}
+
+// encryptIfNeeded шифрует data публичным ключом, если он задан;
+// иначе возвращает data без изменений и признак ok=false.
+func (s *Sender) encryptIfNeeded(data []byte) ([]byte, bool, error) {
+	if s.publicKey == nil {
+		return data, false, nil
+	}
+	encrypted, err := crypto.Encrypt(s.publicKey, data)
+	if err != nil {
+		return nil, false, fmt.Errorf("шифрование тела: %w", err)
+	}
+	return encrypted, true, nil
 }
 
 func (s *Sender) postjson(m models.Metrics) error {
@@ -40,10 +57,18 @@ func (s *Sender) postjson(m models.Metrics) error {
 		return err
 	}
 
+	// Хеш считаем от исходного JSON — сервер после расшифровки/распаковки
+	// сравнивает его с этим значением.
 	var hashValue string
-
 	if s.hashKey != "" {
 		hashValue = hash.ComputeHMAC(data, s.hashKey)
+	}
+
+	// Асимметричное шифрование выполняется до gzip: расшифрованные
+	// байты остаются валидным сжатым потоком на сервере.
+	payload, encrypted, err := s.encryptIfNeeded(data)
+	if err != nil {
+		return err
 	}
 
 	var buf bytes.Buffer
@@ -51,11 +76,9 @@ func (s *Sender) postjson(m models.Metrics) error {
 	if err != nil {
 		return err
 	}
-
-	if _, err := gz.Write(data); err != nil {
+	if _, err := gz.Write(payload); err != nil {
 		return err
 	}
-
 	if err := gz.Close(); err != nil {
 		return err
 	}
@@ -70,12 +93,14 @@ func (s *Sender) postjson(m models.Metrics) error {
 	if hashValue != "" {
 		req.Header.Set("HashSHA256", hashValue)
 	}
+	if encrypted {
+		req.Header.Set("X-Encrypted", "true")
+	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status: %s", resp.Status)
@@ -143,12 +168,17 @@ func (s *Sender) SendBatch(gauge []GaugeMetric, pollCountDelta int64) error {
 		hashValue = hash.ComputeHMAC(data, s.hashKey)
 	}
 
+	payload, encrypted, err := s.encryptIfNeeded(data)
+	if err != nil {
+		return err
+	}
+
 	var buf bytes.Buffer
 	gz, err := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
 	if err != nil {
 		return err
 	}
-	if _, err := gz.Write(data); err != nil {
+	if _, err := gz.Write(payload); err != nil {
 		return err
 	}
 	if err := gz.Close(); err != nil {
@@ -164,6 +194,9 @@ func (s *Sender) SendBatch(gauge []GaugeMetric, pollCountDelta int64) error {
 	req.Header.Set("Content-Encoding", "gzip")
 	if hashValue != "" {
 		req.Header.Set("HashSHA256", hashValue)
+	}
+	if encrypted {
+		req.Header.Set("X-Encrypted", "true")
 	}
 
 	resp, err := s.client.Do(req)

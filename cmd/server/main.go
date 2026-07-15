@@ -1,12 +1,14 @@
 package main
 
 import (
+	"crypto/rsa"
 	"database/sql"
 	"os"
 	"time"
 
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/audit"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/buildinfo"
+	"github.com/bluegopher/go-musthave-metrics-tpl/internal/crypto"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/logger"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/server"
 	"github.com/bluegopher/go-musthave-metrics-tpl/internal/storage"
@@ -85,7 +87,16 @@ func main() {
 		}
 	}()
 
-	srv := server.New(cfg.Addr, repo, db, cfg.HashKey, auditPub, cfg.EnablePprof)
+	var privateKey *rsa.PrivateKey
+	if cfg.CryptoKey != "" {
+		privateKey, err = crypto.LoadPrivateKey(cfg.CryptoKey)
+		if err != nil {
+			log.Fatal().Err(err).Msg("ошибка загрузки приватного ключа")
+		}
+		log.Info().Str("path", cfg.CryptoKey).Msg("расшифровка трафика включена")
+	}
+
+	srv := server.New(cfg.Addr, repo, db, cfg.HashKey, auditPub, cfg.EnablePprof, privateKey)
 	if err := srv.Run(); err != nil {
 		log.Fatal().Err(err).Msg("ошибка запуска сервера")
 	}

@@ -18,6 +18,7 @@ type serverConfig struct {
 	AuditFile     string
 	AuditURL      string
 	EnablePprof   bool
+	CryptoKey     string
 }
 
 func parseConfig() (serverConfig, error) {
@@ -31,6 +32,7 @@ func parseConfig() (serverConfig, error) {
 	auditFile := flag.String("audit-file", "", "путь к файлу логов аудита (пусто — аудит в файл отключён)")
 	auditURL := flag.String("audit-url", "", "URL приёмника логов аудита (пусто — аудит по сети отключён)")
 	enablePprof := flag.Bool("pprof", false, "включить эндпоинты /debug/pprof (только для dev/staging)")
+	cryptoKey := flag.String("crypto-key", "", "путь до файла с приватным RSA-ключом (пусто — расшифровка отключена)")
 	flag.Parse()
 
 	if v, ok := os.LookupEnv("ADDRESS"); ok {
@@ -72,6 +74,9 @@ func parseConfig() (serverConfig, error) {
 		}
 		*enablePprof = b
 	}
+	if v, ok := os.LookupEnv("CRYPTO_KEY"); ok {
+		*cryptoKey = v
+	}
 
 	return serverConfig{
 		Addr:          *addr,
@@ -84,5 +89,6 @@ func parseConfig() (serverConfig, error) {
 		AuditFile:     *auditFile,
 		AuditURL:      *auditURL,
 		EnablePprof:   *enablePprof,
+		CryptoKey:     *cryptoKey,
 	}, nil
 }
