@@ -1,8 +1,13 @@
-package models
+package model
 
 const (
 	Counter = "counter"
 	Gauge   = "gauge"
+)
+
+type (
+	GaugeT   float64
+	CounterT int64
 )
 
 // NOTE: Не усложняем пример, вводя иерархическую вложенность структур.
