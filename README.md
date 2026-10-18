@@ -42,3 +42,38 @@ git fetch template && git checkout template/v2 .github
 - **Clean Architecture**
 - **Hexagonal Architecture**
 - **Layered Architecture**
+
+
+добавление бинаря тестов в пути
+echo 'export PATH="$PATH:$HOME/Desktop/yadex GO course/yandex-go-musthave-metrics-tpl"' >> ~/.zshrc
+
+
+
+компиляция бинарника
+go build -o cmd/server/server ./cmd/server
+
+go build -o cmd/agent/agent ./cmd/agent
+
+
+запуск теста
+metricstest-darwin-arm64 -test.v -test.run='^TestIteration1$' -binary-path=cmd/server/server
+
+metricstest-darwin-arm64 -test.v -test.run='^TestIteration2$' -agent-binary-path=cmd/agent/agent
+
+metricstest-darwin-arm64 -test.v -test.run='^TestIteration5$' -binary-path=cmd/server/server
+
+metricstest-darwin-arm64 \
+-test.v \
+-test.run='^TestIteration2$' \
+-binary-path=cmd/server/server \
+-source-path=. \
+-agent-binary-path=cmd/agent/agent \
+-server-port=8080
+
+metricstest-darwin-arm64 \
+-test.v \
+-test.run='^TestIteration5$' \
+-binary-path=cmd/server/server \
+-source-path=. \
+-agent-binary-path=cmd/agent/agent \
+-server-port=8080
